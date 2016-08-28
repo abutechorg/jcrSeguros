@@ -306,13 +306,13 @@ class UsuarioController extends JcrAPIController{
 
             try{
 
-                if(isset($jsonObject['JcrParameters']['page'])){
+                if(isset($jsonObject['JcrParameters']['Users']['page'])){
 
-                    $page = $jsonObject['JcrParameters']["page"];
-                    $sortedBy = !isset($jsonObject['JcrParameters']["sortedBy"]) ? 'nombre' : $jsonObject['JcrParameters']["sortedBy"];
-                    $sortDir = !isset($jsonObject['JcrParameters']["sortDir"]) ? 'desc' : $jsonObject['JcrParameters']["sortDir"];
-                    $filter = !isset($jsonObject['JcrParameters']["filter"]) ? '' : $jsonObject['JcrParameters']["filter"];
-                    $limit = !isset($jsonObject['JcrParameters']["limit"]) ? 10 : $jsonObject['JcrParameters']["limit"];
+                    $page = $jsonObject['JcrParameters']['Users']["page"];
+                    $sortedBy = !isset($jsonObject['JcrParameters']['Users']["sortedBy"]) ? 'nombre' : $jsonObject['JcrParameters']['Users']["sortedBy"];
+                    $sortDir = !isset($jsonObject['JcrParameters']['Users']["sortDir"]) ? 'desc' : $jsonObject['JcrParameters']['Users']["sortDir"];
+                    $filter = !isset($jsonObject['JcrParameters']['Users']["filter"]) ? '' : $jsonObject['JcrParameters']['Users']["filter"];
+                    $limit = !isset($jsonObject['JcrParameters']['Users']["limit"]) ? 10 : $jsonObject['JcrParameters']['Users']["limit"];
 
                     $userTable = TableRegistry::get('Usuarios');
 
@@ -321,6 +321,7 @@ class UsuarioController extends JcrAPIController{
                             array('nombre LIKE' => '%' . $filter . '%'),
                             array('apellido LIKE' => '%' . $filter . '%'),
                             array('documento_id LIKE' => '%' . $filter . '%'))));
+
 
                         //agregar los contain cuando sea necesario
                         $userFound = $userTable->find()
@@ -435,6 +436,7 @@ class UsuarioController extends JcrAPIController{
 
                 if(isset($user_id)){
                     $userTable = TableRegistry::get("Usuarios");
+                    //find Magico
                     $userFound = $userTable->findByUsuarioId($user_id);
 
                     if($userFound->count() > 0){
