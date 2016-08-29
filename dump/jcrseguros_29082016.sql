@@ -1,8 +1,8 @@
--- MySQL dump 10.16  Distrib 10.1.13-MariaDB, for Win32 (AMD64)
+-- MySQL dump 10.13  Distrib 5.6.24, for Win64 (x86_64)
 --
--- Host: localhost    Database: jcrseguros
+-- Host: 127.0.0.1    Database: jcrseguros
 -- ------------------------------------------------------
--- Server version	10.1.13-MariaDB
+-- Server version	5.6.21
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -16,12 +16,32 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `jcrseguros`
+-- Table structure for table `acceso_opciones_rol`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `jcrseguros` /*!40100 DEFAULT CHARACTER SET utf8 */;
+DROP TABLE IF EXISTS `acceso_opciones_rol`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `acceso_opciones_rol` (
+  `tipo_usuario_id` int(11) NOT NULL,
+  `menu_id` int(11) NOT NULL,
+  `active_menu` int(11) DEFAULT NULL,
+  PRIMARY KEY (`menu_id`,`tipo_usuario_id`),
+  KEY `user_type_id_fk_idx_idx` (`tipo_usuario_id`),
+  CONSTRAINT `menu_id_fk_idx` FOREIGN KEY (`menu_id`) REFERENCES `menu_aplicacion` (`menu_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `user_type_id_fk_idx` FOREIGN KEY (`tipo_usuario_id`) REFERENCES `tipo_usuario` (`tipo_usuario_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-USE `jcrseguros`;
+--
+-- Dumping data for table `acceso_opciones_rol`
+--
+
+LOCK TABLES `acceso_opciones_rol` WRITE;
+/*!40000 ALTER TABLE `acceso_opciones_rol` DISABLE KEYS */;
+INSERT INTO `acceso_opciones_rol` VALUES (4,1,1),(4,2,1),(4,3,1),(4,4,1),(4,5,1),(4,6,1),(4,7,1);
+/*!40000 ALTER TABLE `acceso_opciones_rol` ENABLE KEYS */;
+UNLOCK TABLES;
 
 --
 -- Table structure for table `aseguradora`
@@ -107,6 +127,34 @@ CREATE TABLE `financiamientos` (
 LOCK TABLES `financiamientos` WRITE;
 /*!40000 ALTER TABLE `financiamientos` DISABLE KEYS */;
 /*!40000 ALTER TABLE `financiamientos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `menu_aplicacion`
+--
+
+DROP TABLE IF EXISTS `menu_aplicacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `menu_aplicacion` (
+  `menu_id` int(11) NOT NULL AUTO_INCREMENT,
+  `class_menu` int(11) NOT NULL DEFAULT '1',
+  `name_menu` varchar(45) NOT NULL,
+  `icon_class` varchar(25) NOT NULL,
+  `description` varchar(60) DEFAULT NULL,
+  `order` int(11) DEFAULT NULL,
+  PRIMARY KEY (`menu_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `menu_aplicacion`
+--
+
+LOCK TABLES `menu_aplicacion` WRITE;
+/*!40000 ALTER TABLE `menu_aplicacion` DISABLE KEYS */;
+INSERT INTO `menu_aplicacion` VALUES (1,1,'Usuarios','fa fa-bank','JCR Seguros',1),(2,1,'Polizas','fa fa-user','JCR Seguros',2),(3,1,'Vehiculos','fa fa-hdd-o','JCR Seguros',3),(4,1,'Siniestros','fa fa-map-signs','JCR Seguros',4),(5,1,'Coberturas','fa fa-street-view','JCR Seguros',5),(6,1,'Aseguradoras','fa fa-gear','JCR Seguros',6),(7,1,'Opciones Administrativas','fa fa-gear','JCR Seguros',7);
+/*!40000 ALTER TABLE `menu_aplicacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -218,6 +266,34 @@ LOCK TABLES `siniestro` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `sub_menu_aplicacion`
+--
+
+DROP TABLE IF EXISTS `sub_menu_aplicacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `sub_menu_aplicacion` (
+  `sub_menu_id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) NOT NULL,
+  `url` varchar(45) NOT NULL,
+  `menu_id` int(11) NOT NULL,
+  PRIMARY KEY (`sub_menu_id`,`menu_id`),
+  KEY `menu_id_frk_idx` (`menu_id`),
+  CONSTRAINT `menu_id_frk` FOREIGN KEY (`menu_id`) REFERENCES `menu_aplicacion` (`menu_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `sub_menu_aplicacion`
+--
+
+LOCK TABLES `sub_menu_aplicacion` WRITE;
+/*!40000 ALTER TABLE `sub_menu_aplicacion` DISABLE KEYS */;
+INSERT INTO `sub_menu_aplicacion` VALUES (1,'Ver Usuarios','verUsuarios',1),(2,'Crear Usuarios','crearUsuarios',1),(3,'Ver Polizas','verPolizas',2),(4,'Crear Polizas','crearPolizas',2),(5,'Ver Vehiculos','verVehiculos',3),(6,'Crear Vehiculos','crearVehiculos',3),(7,'Ver Siniestros','verSiniestro',4),(8,'Crear Siniestro','crearSiniestro',4),(9,'Ver Coberturas','verCobertura',5),(10,'Crear Cobertura','crearCobertura',5),(11,'Ver Aseguradoras','verAseguradora',6),(12,'Crear Aseguradora','crearAseguradora',6),(13,'Acceso de Usuarios','accesoUsuario',7);
+/*!40000 ALTER TABLE `sub_menu_aplicacion` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `tipo_poliza`
 --
 
@@ -280,13 +356,14 @@ CREATE TABLE `usuarios` (
   `fecha_nacimiento` varchar(45) NOT NULL,
   `correo` varchar(45) DEFAULT NULL,
   `direccion` varchar(1500) DEFAULT NULL,
-  `tipo_usuario` int(11) DEFAULT NULL,
+  `tipo_usuario_id` int(11) DEFAULT NULL,
   `clave` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`usuario_id`),
   UNIQUE KEY `cedula_UNIQUE` (`documento_id`),
-  KEY `usuario_tipo_usuario_fk_idx` (`tipo_usuario`),
-  CONSTRAINT `usuario_tipo_usuario_fk` FOREIGN KEY (`tipo_usuario`) REFERENCES `tipo_usuario` (`tipo_usuario_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  UNIQUE KEY `correo_UNIQUE` (`correo`),
+  KEY `usuario_tipo_usuario_fk_idx` (`tipo_usuario_id`),
+  CONSTRAINT `usuario_tipo_usuario_fk` FOREIGN KEY (`tipo_usuario_id`) REFERENCES `tipo_usuario` (`tipo_usuario_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -295,6 +372,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
+INSERT INTO `usuarios` VALUES (1,'Yajaira','Vera','1573934','21/03/1984','yaja.vera21@gmail.com','Los Teques',2,''),(2,'Vladimir','Fernandez','16368619','21/03/1984','vladimir.fernandez21@gmail.com','Los Teques',4,'12345');
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -337,4 +415,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-08-20 19:59:13
+-- Dump completed on 2016-08-29  8:46:48

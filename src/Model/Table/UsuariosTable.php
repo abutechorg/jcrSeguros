@@ -16,6 +16,7 @@ class UsuariosTable extends Table{
         parent::initialize($config);
         $this->table('usuarios');
         $this->primaryKey("usuario_id");
+        $this->belongsTo("TipoUsuario",array('foreignKey'=>'tipo_usuario_id'));
 
     }
 

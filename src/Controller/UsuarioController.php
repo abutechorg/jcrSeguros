@@ -326,11 +326,14 @@ class UsuarioController extends JcrAPIController{
                         //agregar los contain cuando sea necesario
                         $userFound = $userTable->find()
                             ->where($whereCondition)
+                            ->contain(array('TipoUsuario'))
                             ->order(array($sortedBy . ' ' . $sortDir));
                     }
                     else{
                         //agregar los contain cuando sea necesario
-                        $userFound = $userTable->find()->order(array($sortedBy . ' ' . $sortDir));
+                        $userFound = $userTable->find()
+                            ->contain(array('TipoUsuario'))
+                            ->order(array($sortedBy . ' ' . $sortDir));
                     }
 
                     $count = $userFound->count();
