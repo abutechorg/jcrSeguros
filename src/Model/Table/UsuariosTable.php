@@ -18,6 +18,10 @@ class UsuariosTable extends Table{
         $this->primaryKey("usuario_id");
         $this->belongsTo("TipoUsuario",array('foreignKey'=>'tipo_usuario_id'));
 
+        $this->belongsToMany('Telefonos',
+            array('targetForeignKey' => 'telefono_id',
+                'foreignKey' => 'usuario_id',
+                'joinTable' => 'usuarios_telefonos'));
     }
 
 }

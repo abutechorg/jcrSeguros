@@ -15,6 +15,9 @@ class SiniestroTable extends Table{
         parent::initialize($config);
         $this->table('siniestro');
         $this->primaryKey("siniestro_id");
+        $this->belongsTo('Poliza',array('foreignKey'=>'poliza_id'));
+        $this->belongsTo('Ramo',array('foreignKey'=>'ramo_id'));
+        $this->belongsTo('Usuarios',array('foreignKey'=>'usuario_id'));
 
     }
 }

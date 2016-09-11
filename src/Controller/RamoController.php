@@ -2,21 +2,23 @@
 /**
  * Created by PhpStorm.
  * User: EduardoDeLaCruz
- * Date: 23/8/2016
- * Time: 11:30
+ * Date: 22/03/2016
+ * Time: 01:43 AM tets
  */
 
 namespace App\Controller;
 
 use Cake\Log\Log;
+use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
+use App\Util\ReaxiumUtil;
 
-class SiniestroController extends JcrAPIController
+class RamoController extends JcrAPIController
 {
-    public function crearSiniestro()
+    public function crearRamo()
     {
-        Log::info("Crear o actualiza un Siniestro en sistema");
+        Log::info("Crear o actualiza un ramo en sistema");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
@@ -26,9 +28,9 @@ class SiniestroController extends JcrAPIController
         {
             try
             {
-                if (isset($jsonObject['JcrParameters']["Siniestro"]))
+                if (isset($jsonObject['JcrParameters']["Ramo"]))
                 {
-                    $result = $this->createASiniestro($jsonObject['JcrParameters']);
+                    $result = $this->createARamo($jsonObject['JcrParameters']);
 
                     if ($result)
                     {
@@ -38,7 +40,7 @@ class SiniestroController extends JcrAPIController
                     else
                     {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                        $response['JcrResponse']['message'] = 'No se pudoo crear el siniestro en sistema';
+                        $response['JcrResponse']['message'] = 'No se pudoo crear el ramo en sistema';
                     }
                 }
                 else
@@ -48,7 +50,7 @@ class SiniestroController extends JcrAPIController
             }
             catch (\Exception $e)
             {
-                Log::info("Error guardando el Siniestro " . $e->getMessage());
+                Log::info("Error guardando el ramo " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
@@ -62,32 +64,33 @@ class SiniestroController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
-    private function createASiniestro($siniestroJSON)
+    private function createARamo($ramoJSON)
     {
         $result = null;
 
         try
         {
-            $siniestroTable = TableRegistry::get("Siniestro");
-            $siniestroEntity = $siniestroTable->newEntity();
+            $ramoTable = TableRegistry::get("Ramo");
+            $ramoEntity = $ramoTable->newEntity();
 
-            $siniestro =$siniestroTable->patchEntity($siniestroEntity, $siniestroJSON['Siniestro']);
+            $ramos =$ramoTable->patchEntity($ramoEntity, $ramoJSON['Ramo']);
 
-            Log::info($siniestro);
-            $result = $siniestroTable->save($siniestro);
+            Log::info($ramos);
+            $result = $ramoTable->save($ramos);
+
         }
         catch (\Exception $e)
         {
-            Log::info("Error creando siniestro");
+            Log::info("Error creando ramo");
             Log::info($e->getMessage());
         }
 
         return $result;
     }
 
-    public function borrarSiniestro()
+    public function borrarRamo()
     {
-        Log::info("Borrar siniestro");
+        Log::info("Borrar ramo");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
@@ -95,14 +98,14 @@ class SiniestroController extends JcrAPIController
 
         if(parent::validJcrJsonHeader($jsonObject))
         {
-            $siniestro_id = !isset($jsonObject['JcrParameters']['Siniestro']['siniestro_id']) ? null : $jsonObject['JcrParameters']['Siniestro']['siniestro_id'];
+            $ramo_id = !isset($jsonObject['JcrParameters']['Ramo']['ramo_id']) ? null : $jsonObject['JcrParameters']['Ramo']['ramo_id'];
 
-            if(isset($siniestro_id))
+            if(isset($ramo_id))
             {
                 try
                 {
-                    $siniestroTable = TableRegistry::get("Siniestro");
-                    $result = $siniestroTable->deleteAll(array('siniestro_id'=>$siniestro_id));
+                    $ramoTable = TableRegistry::get("Ramo");
+                    $result = $ramoTable->deleteAll(array('usuario_id'=>$ramo_id));
 
                     if ($result)
                     {
@@ -112,12 +115,12 @@ class SiniestroController extends JcrAPIController
                     else
                     {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                        $response['JcrResponse']['message'] = 'No se pudo borrar el siniestro en sistema';
+                        $response['JcrResponse']['message'] = 'No se pudo borrar el ramo en sistema';
                     }
                 }
                 catch(\Exception $e)
                 {
-                    Log::info("Error borrando siniestro del sistema");
+                    Log::info("Error borrando ramo del sistema");
                     Log::info($e->getMessage());
                     $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                     $response['JcrResponse']['message'] = 'Error del sistema';
@@ -137,9 +140,9 @@ class SiniestroController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
-    public function allSiniestrosWithPagination()
+    public function allRamoInfoWithPagination()
     {
-        Log::info("Consulta todos los usuarios con paginacion");
+        Log::info("Consulta todos los ramos con paginacion");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
@@ -152,30 +155,46 @@ class SiniestroController extends JcrAPIController
                 if(isset($jsonObject['JcrParameters']['page']))
                 {
                     $page = $jsonObject['JcrParameters']["page"];
-                    $sortedBy = !isset($jsonObject['JcrParameters']["sortedBy"]) ? 'numero_siniestro' : $jsonObject['JcrParameters']["sortedBy"];
+                    $sortedBy = !isset($jsonObject['JcrParameters']["sortedBy"]) ? 'ramo_nombre' : $jsonObject['JcrParameters']["sortedBy"];
                     $sortDir = !isset($jsonObject['JcrParameters']["sortDir"]) ? 'desc' : $jsonObject['JcrParameters']["sortDir"];
                     $filter = !isset($jsonObject['JcrParameters']["filter"]) ? '' : $jsonObject['JcrParameters']["filter"];
                     $limit = !isset($jsonObject['JcrParameters']["limit"]) ? 10 : $jsonObject['JcrParameters']["limit"];
 
-                    $siniestroFound = $this->getSiniestrosInfo($filter,$sortedBy,$sortDir);
+                    $ramoTable = TableRegistry::get('Ramo');
 
-                    $count = $siniestroFound->count();
+                    if(trim($filter) != '')
+                    {
+                        $whereCondition = array(array('OR' => array(
+                            array('ramo_nombre LIKE' => '%' . $filter . '%'))));
+
+                        //agregar los contain cuando sea necesario
+                        $ramoFound = $ramoTable->find()
+                            ->where($whereCondition)
+                            ->order(array($sortedBy . ' ' . $sortDir));
+                    }
+                    else
+                    {
+                        //agregar los contain cuando sea necesario
+                        $ramoFound = $ramoTable->find()->order(array($sortedBy . ' ' . $sortDir));
+                    }
+
+                    $count = $ramoFound->count();
                     $this->paginate = array('limit' => $limit, 'page' => $page);
-                    $siniestroFound = $this->paginate($siniestroFound);
+                    $ramoFound = $this->paginate($ramoFound);
 
-                    if ($siniestroFound->count() > 0)
+                    if ($ramoFound->count() > 0)
                     {
                         $maxPages = floor((($count - 1) / $limit) + 1);
-                        $siniestroFound = $siniestroFound->toArray();
+                        $ramoFound = $ramoFound->toArray();
                         $response['JcrResponse']['totalRecords'] = $count;
                         $response['JcrResponse']['totalPages'] = $maxPages;
-                        $response['JcrResponse']['object'] = $siniestroFound;
+                        $response['JcrResponse']['object'] = $ramoFound;
                         $response = parent::setSuccessfulResponse($response);
                     }
                     else
                     {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Siniestros found';
+                        $response['JcrResponse']['message'] = 'No se encontraron ramos';
                     }
                 }
                 else
@@ -185,7 +204,7 @@ class SiniestroController extends JcrAPIController
             }
             catch (\Exception $e)
             {
-                Log::info("Error borrando siniestro del sistema");
+                Log::info("Error borrando usuario del sistema");
                 Log::info($e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = 'Error del sistema';
@@ -200,50 +219,9 @@ class SiniestroController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
-
-    /**
-     * Metodo para obtener todos los siniestro del sistema
-     * @param $filter
-     * @param $sortedBy
-     * @param $sortDir
-     * @return $this
-     */
-    private function getSiniestrosInfo($filter,$sortedBy,$sortDir){
-
-        $siniestroTable = TableRegistry::get('Siniestro');
-
-        if(trim($filter) != '')
-        {
-            $whereCondition = array(array('OR' => array(
-                array('numero_siniestro LIKE' => '%' . $filter . '%'),
-                array('usuario_id LIKE' => '%' . $filter . '%'),
-                array('vehiculo_id LIKE' => '%' . $filter . '%'))));
-
-            //agregar los contain cuando sea necesario
-            $siniestroFound = $siniestroTable->find()
-                ->where($whereCondition)
-                ->andWhere(array('status_id'=>1))
-                ->contain(array('Poliza','Ramo'))
-                ->order(array($sortedBy . ' ' . $sortDir));
-        }
-        else
-        {
-            //agregar los contain cuando sea necesario
-            $siniestroFound = $siniestroTable->find()
-                ->contain(array('Poliza','Ramo'))
-                ->order(array($sortedBy . ' ' . $sortDir));
-        }
-
-        return $siniestroFound;
-    }
-
-
-    /**
-     * Servivio para obtener siniestro por ID
-     */
-    public function searchSiniestroById()
+    public function ramoInfoById()
     {
-        Log::info("Informacion siniestro por ID");
+        Log::info("Informacion ramo por ID");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
@@ -251,28 +229,27 @@ class SiniestroController extends JcrAPIController
 
         if(parent::validJcrJsonHeader($jsonObject))
         {
-            $siniestro_id = !isset($jsonObject['JcrParameters']['Siniestro']['siniestro_id']) ? null : $jsonObject['JcrParameters']['Siniestro']['siniestro_id'];
+            $ramo_id = !isset($jsonObject['JcrParameters']['Ramo']['ramo_id']) ? null : $jsonObject['JcrParameters']['Ramo']['ramo_id'];
 
             try
             {
-                if(isset($siniestro_id))
+                if(isset($ramo_id))
                 {
+                    $ramoTable = TableRegistry::get("Ramo");
+                    $ramoFound = $ramoTable->findByRamoId($ramo_id);
 
-                    $siniestroFound = $this->getSiniestroById($siniestro_id);
-
-                    if($siniestroFound->count() > 0)
+                    if($ramoFound->count() > 0)
                     {
-                        $siniestroFound = $siniestroFound->toArray();
-                        $response['JcrResponse']['object'] = $siniestroFound;
-                        $response = parent::setSuccessfulResponse($response);
+                        $ramoFound = $ramoFound->toArray();
+
                     }
                     else
                     {
-                        $response['JcrResponse']['object'] = [];
-                        $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'No se encontro siniestro con el Id: '.$siniestro_id;
+                        $ramoFound = null;
                     }
 
+                    $response['JcrResponse']['object'] = $ramoFound;
+                    $response = parent::setSuccessfulResponse($response);
 
                 }
                 else
@@ -282,7 +259,7 @@ class SiniestroController extends JcrAPIController
             }
             catch(\Exception $e)
             {
-                Log::info("Error borrando siniestro en el sistema");
+                Log::info("Error buscando ramo en el sistema");
                 Log::info($e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = 'Error del sistema';
@@ -297,22 +274,9 @@ class SiniestroController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
-
-    private function getSiniestroById($siniestroId){
-
-        $siniestroTable = TableRegistry::get("Siniestro");
-        $siniestroFound = $siniestroTable->find()
-            ->where(array('siniestro_id'=>$siniestroId,'Siniestro.status_id'=>1))
-            ->contain(array('Poliza','Ramo','Usuarios'));
-
-        return $siniestroFound;
-
-    }
-
-
-    public function filterSiniestro()
+    public function ramoFilter()
     {
-        Log::info("Informacion siniestro por filtro");
+        Log::info("Informacion ramo por filtro");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
@@ -322,31 +286,29 @@ class SiniestroController extends JcrAPIController
         {
             try
             {
-                if(isset($jsonObject['JcrParameters']['Siniestro']['filter']))
+                if(isset($jsonObject['JcrParameters']['Ramo']['filter']))
                 {
-                    $filter = $jsonObject['JcrParameters']['Siniestro']['filter'];
-                    $siniestroTable = TableRegistry::get('Siniestro');
+                    $filter = $jsonObject['JcrParameters']['Ramo']['filter'];
+                    $ramoTable = TableRegistry::get('Ramo');
                     $whereCondition = array(array('OR' => array(
-                        array('numero_siniestro LIKE' => '%' . $filter . '%'),
-                        array('usuario_id LIKE' => '%' . $filter . '%'),
-                        array('vehiculo_id LIKE' => '%' . $filter . '%')
+                        array('ramo_nombre LIKE' => '%' . $filter . '%')
                     )));
 
                     //agregar el contain cuando sea necesario
-                    $siniestroFound = $siniestroTable->find()
+                    $ramoFound = $ramoTable->find()
                         ->where($whereCondition)
-                        ->order(array('numero_siniestro', 'vehiculo_id'));
+                        ->order(array('ramo_nombre'));
 
 
-                    if ($siniestroFound->count() > 0) {
-                        $siniestroFound = $siniestroFound->toArray();
-                        $response['JcrResponse']['object'] = $siniestroFound;
+                    if ($ramoFound->count() > 0) {
+                        $ramoFound = $ramoFound->toArray();
+                        $response['JcrResponse']['object'] = $ramoFound;
                         $response = parent::setSuccessfulResponse($response);
                     }
                     else
                     {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Siniestro found';
+                        $response['JcrResponse']['message'] = 'No se encontraron ramos';
                     }
                 }
                 else
@@ -356,7 +318,7 @@ class SiniestroController extends JcrAPIController
             }
             catch (\Exception $e)
             {
-                Log::info("Error borrando siniestro del sistema");
+                Log::info("Error buscando ramos en el sistema");
                 Log::info($e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = 'Error del sistema';

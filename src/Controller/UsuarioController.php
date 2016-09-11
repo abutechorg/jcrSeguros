@@ -94,7 +94,7 @@ class UsuarioController extends JcrAPIController{
                     }
                     else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                        $response['JcrResponse']['message'] = 'No se pudoo crear el usuario en sistema';
+                        $response['JcrResponse']['message'] = 'No se pudo crear el usuario en sistema';
                     }
                 } else {
                     $response = parent::seInvalidParametersMessage($response);
@@ -115,7 +115,6 @@ class UsuarioController extends JcrAPIController{
     /**
      *
      * Register a new user in the system
-     *
      * @param $userJSON
      * @return created user
      */
@@ -128,11 +127,14 @@ class UsuarioController extends JcrAPIController{
 
             $userTable = TableRegistry::get("Usuarios");
             $userEntity = $userTable->newEntity();
-
             $users =$userTable->patchEntity($userEntity, $userJSON['Users']);
 
             Log::info($users);
             $result = $userTable->save($users);
+            Log::info('User ID: ' . $result['usuario_id']);
+
+            $result = $this->addPhoneToAUser($userJSON['Phones'],$result['usuario_id']);
+            //agregar tambien que ingresar una direcion ams elaborada me imagino???
 
         } catch (\Exception $e) {
             Log::info("Error creando usuario");
@@ -143,6 +145,48 @@ class UsuarioController extends JcrAPIController{
     }
 
 
+    /**
+     * add phone numbers to a user
+     */
+    private function addPhoneToAUser($phoneJson, $userID)
+    {
+        $result = null;
+
+        try {
+
+            Log::info($phoneJson);
+
+            $phoneNumbersTable = TableRegistry::get("Telefonos");
+            $phoneNumbersRelationshipTable = TableRegistry::get("UsuariosTelefonos");
+
+            $phoneIdChecker = false;
+            $result = array();
+
+            foreach ($phoneJson as $phone) {
+                $phoneNumber = $phoneNumbersTable->newEntity();
+                $phoneNumber = $phoneNumbersTable->patchEntity($phoneNumber, $phone);
+                if (isset($phoneNumber->telefono_id)) {
+                    $phoneIdChecker = true;
+                }
+                $resultOfSave = $phoneNumbersTable->save($phoneNumber);
+                array_push($result, $resultOfSave);
+                Log::info('PhoneId checker: ' . $phoneIdChecker);
+                if (!$phoneIdChecker) {
+                    $relationShip = $phoneNumbersRelationshipTable->newEntity();
+                    $relationShip->telefono_id = $resultOfSave->telefono_id;
+                    $relationShip->usuario_id = $userID;
+                    $resultOfSave = $phoneNumbersRelationshipTable->save($relationShip);
+                    array_push($result, $resultOfSave);
+                }
+
+            }
+        } catch (\Exception $e) {
+            Log::info("Error salvando numericos telefonicos del usuario: " . $e->getMessage());
+            $result = null;
+        }
+
+        return $result;
+    }
     /**
      * @api {post} /Usuario/borrarUsuario Create A New User in the system
      * @apiName borrarUsuario
@@ -439,8 +483,10 @@ class UsuarioController extends JcrAPIController{
 
                 if(isset($user_id)){
                     $userTable = TableRegistry::get("Usuarios");
-                    //find Magico
-                    $userFound = $userTable->findByUsuarioId($user_id);
+
+                    $userFound = $userTable->find()
+                    ->where(array('usuario_id'=>$user_id,'status_id'=>1))
+                    ->contain(array('Telefonos'));
 
                     if($userFound->count() > 0){
                         $userFound = $userFound->toArray();
@@ -578,6 +624,40 @@ class UsuarioController extends JcrAPIController{
 
         Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
+    }
+
+
+
+    public function typeUser(){
+
+        Log::info("Informacion tipo de usuario");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+
+        try{
+
+            $userType = TableRegistry::get("TipoUsuario");
+            $userFound = $userType->find()->order(array('tipo_usuario_id'=>'asc'));
+
+            if($userFound->count() > 0){
+                $userFound = $userFound->toArray();
+            }else{
+                $userFound=null;
+            }
+
+            $response['JcrResponse']['object'] = $userFound;
+            $response = parent::setSuccessfulResponse($response);
+
+        }catch (\Exception $e){
+            Log::info("Error borrando usuario del sistema");
+            Log::info($e->getMessage());
+            $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+            $response['JcrResponse']['message'] = 'Error del sistema';
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
+
     }
 
 }
