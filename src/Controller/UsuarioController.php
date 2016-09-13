@@ -253,7 +253,10 @@ class UsuarioController extends JcrAPIController{
                 try{
 
                     $userTable = TableRegistry::get("Usuarios");
-                    $result = $userTable->deleteAll(array('usuario_id'=>$user_id));
+                    $entityUser = $userTable->newEntity();
+                    $entityUser->usuario_id = $user_id;
+                    $entityUser->status_id = 3;
+                    $result = $userTable->save($entityUser);
 
                     if ($result) {
                         $response = parent::setSuccessfulDelete($response);
@@ -370,12 +373,14 @@ class UsuarioController extends JcrAPIController{
                         //agregar los contain cuando sea necesario
                         $userFound = $userTable->find()
                             ->where($whereCondition)
+                            ->andWhere(array('status_id'=>1))
                             ->contain(array('TipoUsuario'))
                             ->order(array($sortedBy . ' ' . $sortDir));
                     }
                     else{
                         //agregar los contain cuando sea necesario
                         $userFound = $userTable->find()
+                            ->where(array('status_id'=>1))
                             ->contain(array('TipoUsuario'))
                             ->order(array($sortedBy . ' ' . $sortDir));
                     }
