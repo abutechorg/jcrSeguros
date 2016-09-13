@@ -230,7 +230,7 @@ class UsuarioController extends JcrAPIController{
      *  {
      *      "ReaxiumResponse": {
      *          "code": 101,
-     *          "message": "User id number already exist in the systems",
+     *          "message": "User id number already exist in the system",
      *          "object": []
      *          }
      *      }
