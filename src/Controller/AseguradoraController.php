@@ -14,8 +14,9 @@ use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
 use App\Util\ReaxiumUtil;
 
-class AseguradoraController extends JcrAPIController
-{
+class AseguradoraController extends JcrAPIController{
+
+
     public function crearAseguradora()
     {
         Log::info("Crear o actualiza una aseguradora en sistema");
@@ -88,8 +89,8 @@ class AseguradoraController extends JcrAPIController
         return $result;
     }
 
-    public function borrarAseguradora()
-    {
+    public function borrarAseguradora(){
+
         Log::info("Borrar aseguradora");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
@@ -105,7 +106,11 @@ class AseguradoraController extends JcrAPIController
                 try
                 {
                     $aseguradoraTable = TableRegistry::get("Aseguradora");
-                    $result = $aseguradoraTable->deleteAll(array('aseguradora_id'=>$aseguradora_id));
+                    $entityAseguradora = $aseguradoraTable->newEntity();
+                    $entityAseguradora->aseguradora_id = $aseguradora_id;
+                    $entityAseguradora->status_id=3;
+
+                    $result = $aseguradoraTable->save($entityAseguradora);
 
                     if ($result)
                     {
@@ -171,12 +176,15 @@ class AseguradoraController extends JcrAPIController
                         //agregar los contain cuando sea necesario
                         $aseguradoraFound = $aseguradoraTable->find()
                             ->where($whereCondition)
+                            ->andWhere(array('status_id'=>1))
                             ->order(array($sortedBy . ' ' . $sortDir));
                     }
                     else
                     {
                         //agregar los contain cuando sea necesario
-                        $aseguradoraFound = $aseguradoraTable->find()->order(array($sortedBy . ' ' . $sortDir));
+                        $aseguradoraFound = $aseguradoraTable->find()
+                            ->where(array('status_id'=>1))
+                            ->order(array($sortedBy . ' ' . $sortDir));
                     }
 
                     $count = $aseguradoraFound->count();
@@ -237,15 +245,13 @@ class AseguradoraController extends JcrAPIController
                 if(isset($aseguradora_id))
                 {
                     $aseguradoraTable = TableRegistry::get("Aseguradora");
-                    $aseguradoraFound = $aseguradoraTable->findByAseguradoraId($aseguradora_id);
+                    $aseguradoraFound = $aseguradoraTable->find()->where(array('aseguradora_id'=>$aseguradora_id,'status_id'=>1));
 
-                    if($aseguradoraFound->count() > 0)
-                    {
+                    if($aseguradoraFound->count() > 0) {
+
                         $aseguradoraFound = $aseguradoraFound->toArray();
-
                     }
-                    else
-                    {
+                    else {
                         $aseguradoraFound = null;
                     }
 
@@ -253,13 +259,12 @@ class AseguradoraController extends JcrAPIController
                     $response = parent::setSuccessfulResponse($response);
 
                 }
-                else
-                {
+                else {
+
                     $response = parent::setInvalidJsonMessage($response);
                 }
             }
-            catch(\Exception $e)
-            {
+            catch(\Exception $e) {
                 Log::info("Error buscando aseguradora en el sistema");
                 Log::info($e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
