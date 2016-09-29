@@ -254,8 +254,8 @@ class PolizaController extends JcrAPIController{
         {
             $whereCondition = array(array('OR' => array(
                 array('numero_poliza LIKE' => '%' . $filter . '%'),
-                array('ramo_is LIKE' => '%' . $filter . '%'),
-                array('aseguradora_id LIKE' => '%' . $filter . '%'))));
+                array('Poliza.ramo_id LIKE' => '%' . $filter . '%'),
+                array('Poliza.aseguradora_id LIKE' => '%' . $filter . '%'))));
 
             //agregar los contain cuando sea necesario
             $polizaFound = $polizaTable->find()

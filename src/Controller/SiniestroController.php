@@ -8,14 +8,21 @@
 
 namespace App\Controller;
 
+use App\Util\ReaxiumUtil;
 use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
 
-class SiniestroController extends JcrAPIController
-{
-    public function crearSiniestro()
-    {
+
+define('TIPO_SINIESTRO_AUTO',2);
+class SiniestroController extends JcrAPIController{
+
+    /**
+     * Servicio para la creacion de siniestro
+     */
+    public function crearSiniestro(){
+
+
         Log::info("Crear o actualiza un Siniestro en sistema");
         parent::setResultAsAJson();
         $response = parent::getDefaultJcrMessage();
@@ -26,17 +33,15 @@ class SiniestroController extends JcrAPIController
         {
             try
             {
-                if (isset($jsonObject['JcrParameters']["Siniestro"]))
+                if (isset($jsonObject['JcrParameters']['SiniestroSystem']))
                 {
-                    $result = $this->createASiniestro($jsonObject['JcrParameters']);
+                    $result = $this->createASiniestro($jsonObject['JcrParameters']['SiniestroSystem']);
 
-                    if ($result)
-                    {
+                    if ($result){
                         $response = parent::setSuccessfulSave($response);
                         $response['JcrResponse']['object'] = $result;
                     }
-                    else
-                    {
+                    else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                         $response['JcrResponse']['message'] = 'No se pudoo crear el siniestro en sistema';
                     }
@@ -62,24 +67,118 @@ class SiniestroController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
-    private function createASiniestro($siniestroJSON)
-    {
-        $result = null;
 
-        try
-        {
+    /**
+     * Metodo para guarda siniestro
+     * @param $siniestroJSON
+     * @return bool
+     */
+    private function createASiniestro($siniestroJSON){
+        $result = true;
+
+        try {
+
             $siniestroTable = TableRegistry::get("Siniestro");
-            $siniestroEntity = $siniestroTable->newEntity();
 
-            $siniestro =$siniestroTable->patchEntity($siniestroEntity, $siniestroJSON['Siniestro']);
+            $conn = $siniestroTable->connection();
 
-            Log::info($siniestro);
-            $result = $siniestroTable->save($siniestro);
+            // bloque transaccional
+            $conn->transactional(function() use($siniestroTable,$siniestroJSON){
+
+                $siniestroEntity = $siniestroTable->newEntity();
+
+                if(isset($siniestroJSON['siniestro']['siniestro_id'])){
+                    $siniestroEntity->siniestro_id = $siniestroJSON['siniestro']['siniestro_id'];
+                }
+
+                $siniestroEntity->poliza_id = $siniestroJSON['siniestro']['poliza_id'];
+                $siniestroEntity->numero_siniestro = $siniestroJSON['siniestro']['numero_siniestro'];
+                $siniestroEntity->monto_siniestro = $siniestroJSON['siniestro']['monto_siniestro'];
+                $siniestroEntity->tipo_siniestro_id = $siniestroJSON['siniestro']['tipo_siniestro_id'];
+
+                // guardando el sinestro en tabla siniestro
+                $siniestro = $siniestroTable->save($siniestroEntity);
+
+                // si es siniestro automovil guardo el la tabla SiniestroAutomovil
+                if($siniestroJSON['siniestro']['tipo_siniestro_id'] == TIPO_SINIESTRO_AUTO){
+
+                    if($siniestro){
+
+                        $siniestroAutomovilTable = TableRegistry::get("SiniestroAutomovil");
+                        $siniestroAutoEntity = $siniestroAutomovilTable->newEntity();
+
+                        if(isset($siniestroJSON['auto']['siniestro_automovil_id'])){
+                            $siniestroAutoEntity->siniestro_automovil_id = $siniestroJSON['auto']['siniestro_automovil_id'];
+                        }
+
+                        $siniestroAutoEntity->siniestro_id = $siniestro['siniestro_id'];
+                        $siniestroAutoEntity->fecha_ocurrencia = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_ocurrencia']);
+                        $siniestroAutoEntity->fecha_declaracion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_declaracion']);
+                        $siniestroAutoEntity->fecha_inspeccion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_inspeccion']);
+                        $siniestroAutoEntity->observaciones_odenes = $siniestroJSON['auto']['observaciones_odenes'];
+                        $siniestroAutoEntity->taller_propuesto = $siniestroJSON['auto']['taller_propuesto'];
+                        $siniestroAutoEntity->fecha_entrada_taller = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_entrada_taller']);
+                        $siniestroAutoEntity->fecha_cierre = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_cierre']);
+
+                        $result = $siniestroAutomovilTable->save($siniestroAutoEntity);
+
+                        if($result){
+
+                            // si se guarda los datos en la tabla Repuestos
+                            $repuestoAutoTable =  TableRegistry::get("Repuestos");
+
+                            $listRepuesto = $siniestroJSON['auto']['respuestos'];
+
+                            $repuestoEntity = null;
+                            $arrayReportResult = array();
+
+                            foreach($listRepuesto as $repuesto){
+
+                                $repuestoEntity = $repuestoAutoTable->newEntity();
+
+                                if(isset($repuesto['repuesto_id'])){
+                                    $repuestoEntity->repuesto_id = $repuesto['repuesto_id'];
+                                }
+
+                                $repuestoEntity->fecha_llegada = ReaxiumUtil::getDate($repuesto['fecha_llegada']);
+                                $repuestoEntity->descripcion = $repuesto['descripcion'];
+                                $repuestoEntity->observaciones = $repuesto['observaciones'];
+
+                               $result = $repuestoAutoTable->save($repuestoEntity);
+                               array_push($arrayReportResult,$result);
+                            }
+
+                            $siniestroRepuestoTable = TableRegistry::get("siniestro_repuesto");
+                            $siniestroRepuestoEntity = null;
+
+                            if(isset($siniestroJSON['siniestro']['siniestro_id'])){
+                                $siniestroRepuestoTable->deleteAll(array('siniestro_id'=>$siniestroJSON['siniestro']['siniestro_id']));
+                            }
+
+
+                            foreach($arrayReportResult as $row){
+                                $siniestroRepuestoEntity = $siniestroRepuestoTable->newEntity();
+                                $siniestroRepuestoEntity->siniestro_id =$siniestro['siniestro_id'];
+                                $siniestroRepuestoEntity->repuesto_id = $row['repuesto_id'];
+                                $siniestroRepuestoTable->save($siniestroRepuestoEntity);
+                            }
+
+                        }
+                        else{
+                            Log::info("No se completo el guardado en la tabla SiniestroAutomovil");
+                        }
+
+                    }
+                }
+
+            });
+
         }
         catch (\Exception $e)
         {
             Log::info("Error creando siniestro");
             Log::info($e->getMessage());
+            $result = false;
         }
 
         return $result;
@@ -212,25 +311,22 @@ class SiniestroController extends JcrAPIController
 
         $siniestroTable = TableRegistry::get('Siniestro');
 
-        if(trim($filter) != '')
-        {
+        if(trim($filter) != '') {
+
             $whereCondition = array(array('OR' => array(
                 array('numero_siniestro LIKE' => '%' . $filter . '%'),
-                array('usuario_id LIKE' => '%' . $filter . '%'),
                 array('vehiculo_id LIKE' => '%' . $filter . '%'))));
 
             //agregar los contain cuando sea necesario
             $siniestroFound = $siniestroTable->find()
                 ->where($whereCondition)
-                ->andWhere(array('status_id'=>1))
-                ->contain(array('Poliza','Ramo'))
+                ->contain(array('Poliza'))
                 ->order(array($sortedBy . ' ' . $sortDir));
         }
-        else
-        {
+        else {
             //agregar los contain cuando sea necesario
             $siniestroFound = $siniestroTable->find()
-                ->contain(array('Poliza','Ramo'))
+                ->contain(array('Poliza'))
                 ->order(array($sortedBy . ' ' . $sortDir));
         }
 
@@ -251,18 +347,21 @@ class SiniestroController extends JcrAPIController
 
         if(parent::validJcrJsonHeader($jsonObject))
         {
-            $siniestro_id = !isset($jsonObject['JcrParameters']['Siniestro']['siniestro_id']) ? null : $jsonObject['JcrParameters']['Siniestro']['siniestro_id'];
+            $siniestro_id = !isset($jsonObject['JcrParameters']['Siniestro']['siniestro_id']) ? null :
+                $jsonObject['JcrParameters']['Siniestro']['siniestro_id'];
+
+            $siniestro_type = !isset($jsonObject['JcrParameters']['Siniestro']['tipo_siniestro_id']) ? null :
+                $jsonObject['JcrParameters']['Siniestro']['tipo_siniestro_id'];
 
             try
             {
                 if(isset($siniestro_id))
                 {
 
-                    $siniestroFound = $this->getSiniestroById($siniestro_id);
+                    $siniestroFound = $this->getSiniestroById($siniestro_id,$siniestro_type);
 
-                    if($siniestroFound->count() > 0)
+                    if(isset($siniestroFound))
                     {
-                        $siniestroFound = $siniestroFound->toArray();
                         $response['JcrResponse']['object'] = $siniestroFound;
                         $response = parent::setSuccessfulResponse($response);
                     }
@@ -298,12 +397,67 @@ class SiniestroController extends JcrAPIController
     }
 
 
-    private function getSiniestroById($siniestroId){
+    private function getSiniestroById($siniestroId,$siniestro_type){
 
         $siniestroTable = TableRegistry::get("Siniestro");
-        $siniestroFound = $siniestroTable->find()
-            ->where(array('siniestro_id'=>$siniestroId,'Siniestro.status_id'=>1))
-            ->contain(array('Poliza','Ramo','Usuarios'));
+
+        $siniestroFound = null;
+
+        if($siniestro_type == TIPO_SINIESTRO_AUTO){
+
+            $siniestroFound = $siniestroTable->find('all',array('fields'=>array(
+                'siniestro_id',
+                'poliza_id',
+                'numero_siniestro',
+                'monto_siniestro',
+                'monto_siniestro',
+                'poliza.numero_poliza',
+                'poliza.prima_total',
+                'poliza.aseguradora_id',
+                'poliza.numero_recibo',
+                'siniestroAuto.fecha_ocurrencia',
+                'siniestroAuto.fecha_declaracion',
+                'siniestroAuto.fecha_inspeccion',
+                'siniestroAuto.observaciones_odenes',
+                'siniestroAuto.taller_propuesto',
+                'siniestroAuto.fecha_entrada_taller',
+                'siniestroAuto.fecha_cierre')))
+                ->join(array(
+                    'poliza' => array('table'=>'poliza','type'=>'INNER','conditions'=>'Siniestro.poliza_id = poliza.poliza_id'),
+                    'siniestroAuto' =>array('table'=>'siniestro_automovil','type'=>'INNER','conditions'=>'Siniestro.siniestro_id = siniestroAuto.siniestro_id'),
+                ))
+                ->where(array('Siniestro.siniestro_id'=>$siniestroId));
+
+            if($siniestroFound->count() > 0){
+
+                $siniestroFound = $siniestroFound->toArray();
+
+                $siniestroRepuestoTable = TableRegistry::get("SiniestroRepuesto");
+                $siniestroRepuestoFound = $siniestroRepuestoTable->find()->where(array('siniestro_id'=>$siniestroId))->contain(array('Repuestos'));
+
+                if($siniestroRepuestoFound->count() > 0){
+
+                    $siniestroRepuestoFound = $siniestroRepuestoFound->toArray();
+                    $siniestroFound['repuestos'] = $siniestroRepuestoFound;
+                }else{
+                    $siniestroFound['repuestos'] = [];
+                }
+            }else{
+                $siniestroFound = null;
+            }
+
+        }
+        else{
+            $siniestroFound = $siniestroTable->find()->where(array('siniestro_id'=>$siniestroId))->contain('Poliza');
+
+            if($siniestroFound->count() > 0){
+                $siniestroFound = $siniestroFound->toArray();
+            }
+            else{
+                $siniestroFound=null;
+            }
+        }
+
 
         return $siniestroFound;
 

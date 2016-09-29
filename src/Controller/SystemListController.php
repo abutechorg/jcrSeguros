@@ -87,7 +87,9 @@ class SystemListController extends JcrAPIController{
                  if(isset($tipo_usuario)){
 
                      $menuOptionTable = TableRegistry::get('MenuAplicacion');
-                     $menuOptionFound = $menuOptionTable->find()->contain(array('SubMenuAplicacion'))->order(array('name_menu desc'));
+                     $menuOptionFound = $menuOptionTable->find()
+                         ->where(array('status_id'=>1))
+                         ->contain(array('SubMenuAplicacion'))->order(array('name_menu desc'));
 
                      if($menuOptionFound->count()>0){
                          $menuOptionFound = $menuOptionFound->toArray();
@@ -244,7 +246,9 @@ class SystemListController extends JcrAPIController{
                 if(isset($userName) && isset($passUser)){
 
                     $userTable = TableRegistry::get("Usuarios");
-                    $userFound = $userTable->find()->where(array('correo'=>$userName,'clave'=>$passUser,'tipo_usuario_id'=>4));
+                    $userFound = $userTable->find()->where(array('correo'=>$userName,'clave'=>$passUser,'tipo_usuario_id in'=>array(1,2,3)));
+
+                    Log::info($userFound);
 
                     if($userFound->count() > 0){
                         $arrayMenuFinal = $userFound->toArray();
