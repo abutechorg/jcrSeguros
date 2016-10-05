@@ -261,7 +261,7 @@ class PolizaController extends JcrAPIController{
             $polizaFound = $polizaTable->find()
                 ->where($whereCondition)
                 ->andWhere(array('Poliza.status_id' => 1))
-                ->contain(array('TipoPoliza','Aseguradora','Ramo'))
+                ->contain(array('Aseguradora','Ramo'))
                 ->order(array($sortedBy . ' ' . $sortDir));
         }
         else
@@ -269,7 +269,7 @@ class PolizaController extends JcrAPIController{
             //agregar los contain cuando sea necesario
             $polizaFound = $polizaTable->find()
                 ->where(array('Poliza.status_id' => 1))
-                ->contain(array('TipoPoliza','Aseguradora','Ramo'))
+                ->contain(array('Aseguradora','Ramo'))
                 ->order(array($sortedBy . ' ' . $sortDir));
         }
 
@@ -294,9 +294,7 @@ class PolizaController extends JcrAPIController{
                 if(isset($poliza_id))
                 {
                     $polizaTable = TableRegistry::get("Poliza");
-                    $polizaFound = $polizaTable->find()
-                    ->where(array('poliza_id'=>$poliza_id))
-                    ->contain(array('TipoPoliza','Aseguradora','Ramo'));
+                    $polizaFound = $polizaTable->find()->where(array('poliza_id'=>$poliza_id))->contain(array('Aseguradora','Ramo'));
 
                     if($polizaFound->count() > 0) {
 
@@ -304,7 +302,7 @@ class PolizaController extends JcrAPIController{
                         $polizaFound[0]['tomador'] = $this->getUserById($polizaFound[0]['usuario_id_tomador']);
                         $polizaFound[0]['titular'] = $this->getUserById($polizaFound[0]['usuario_id_titular']);
                         $polizaFound[0]['agente'] = $this->getUserById($polizaFound[0]['usuario_id_agente']);
-                        $polizaFound[0]['beneficiarios'] = $this->getBeneficarios($polizaFound[0]['poliza_id']);
+
 
                         $response['JcrResponse']['object'] = $polizaFound;
                         $response = parent::setSuccessfulResponse($response);
@@ -340,27 +338,32 @@ class PolizaController extends JcrAPIController{
     }
 
 
-    private function getUserById($user_id){
+    private function getUserById($cliente_id){
 
-        Log::info("User ID: "+$user_id);
+        Log::info("User ID: "+$cliente_id);
 
-        $userTable = TableRegistry::get("Usuarios");
-        $userFound = $userTable->find()->where(array('usuario_id'=>$user_id))->contain(array("TipoUsuario"));
+        $userTable = TableRegistry::get("Clientes");
+        $userFound = $userTable->find()->where(array('cliente_id'=>$cliente_id))->contain(array("TipoCliente"));
 
         $entityUser = null;
 
         if($userFound->count() > 0){
+
             $userFound = $userFound->toArray();
+            Log::info(json_encode($userFound));
+
             $entityUser = $userTable->newEntity();
 
             foreach($userFound as $row){
 
-                $entityUser->usuario_id = $row['usuario_id'];
-                $entityUser->nombre = $row['nombre'];
-                $entityUser->apellido = $row['apellido'];
-                $entityUser->documento_id = $row['documento_id'];
-                $entityUser->tipo_usuario_id = $row['tipo_usuario']['tipo_usuario_id'];
-                $entityUser->tipo_usuario_name = $row['tipo_usuario']['tipo_usuario_nombre'];
+                $entityUser->cliente_id = $row['cliente_id'];
+                $entityUser->nombre_cliente = $row['nombre_cliente'];
+                $entityUser->apellido_cliente = $row['apellido_cliente'];
+                $entityUser->documento_id_cliente = $row['documento_id_cliente'];
+                $entityUser->fecha_nacimiento = $row['fecha_nacimiento'];
+                $entityUser->correo_cliente = $row['correo_cliente'];
+                $entityUser->direccion = $row['direccion'];
+                //$entityUser->tipo_cliente = $row['TipoCliente'];
             }
 
         }else{
@@ -370,54 +373,6 @@ class PolizaController extends JcrAPIController{
         return $entityUser;
     }
 
-
-    private function getBeneficarios($poliza_id){
-
-        $polizaBeneficTable = TableRegistry::get("PolizaBeneficiario");
-        $arrayBeneficiarios = array();
-        $entityUser = null;
-
-        $poliFound = $polizaBeneficTable->find()
-            ->where(array('poliza_id' => $poliza_id))
-            ->contain(array('Usuarios'));
-
-        if($poliFound->count()>0){
-            $poliFound = $poliFound->toArray();
-
-
-
-            foreach($poliFound as $row){
-
-                $entityUser = $polizaBeneficTable->newEntity();
-                $entityUser->usuario_id = $row['usuario']['usuario_id'];
-                $entityUser->nombre = $row['usuario']['nombre'];
-                $entityUser->apellido = $row['usuario']['apellido'];
-                $entityUser->documento_id = $row['usuario']['documento_id'];
-                $typeUser = $this->getTypeUser($row['usuario']['tipo_usuario_id']);
-                $entityUser->tipo_usuario_id = $typeUser[0]['tipo_usuario_id'];
-                $entityUser->tipo_usuario_name = $typeUser[0]['tipo_usuario_nombre'];
-                array_push($arrayBeneficiarios,$entityUser);
-            }
-
-        }
-
-        return $arrayBeneficiarios;
-    }
-
-
-    private function getTypeUser($tipo_usuario_id){
-
-        $typeUserTable = TableRegistry::get("TipoUsuario");
-        $typeUserFound = $typeUserTable->findByTipoUsuarioId($tipo_usuario_id);
-
-        if($typeUserFound->count() > 0){
-            $typeUserFound=$typeUserFound->toArray();
-        }else{
-            $typeUserFound = null;
-        }
-
-        return $typeUserFound;
-    }
 
 
     public function filterPoliza()
