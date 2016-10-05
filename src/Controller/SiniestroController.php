@@ -396,6 +396,7 @@ class SiniestroController extends JcrAPIController{
                 'numero_siniestro',
                 'monto_siniestro',
                 'monto_siniestro',
+                'tipo_siniestro_id',
                 'poliza.numero_poliza',
                 'poliza.prima_total',
                 'poliza.aseguradora_id',
@@ -416,7 +417,7 @@ class SiniestroController extends JcrAPIController{
 
             if($siniestroFound->count() > 0){
                 $siniestroFound = $siniestroFound->toArray();
-                $siniestroFound['repuestos'] = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
+                $siniestroFound[0]['repuestos'] = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
             }else{
                 $siniestroFound = null;
             }
