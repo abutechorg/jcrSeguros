@@ -130,7 +130,7 @@ class SiniestroController extends JcrAPIController{
                             $listRepuesto = $siniestroJSON['auto']['respuestos'];
 
                             $repuestoEntity = null;
-                            $arrayReportResult = array();
+
 
                             foreach($listRepuesto as $repuesto){
 
@@ -143,24 +143,9 @@ class SiniestroController extends JcrAPIController{
                                 $repuestoEntity->fecha_llegada = ReaxiumUtil::getDate($repuesto['fecha_llegada']);
                                 $repuestoEntity->descripcion = $repuesto['descripcion'];
                                 $repuestoEntity->observaciones = $repuesto['observaciones'];
+                                $repuestoEntity->siniestro_automovil_id = $result['siniestro_automovil_id'];
+                                $repuestoAutoTable->save($repuestoEntity);
 
-                               $result = $repuestoAutoTable->save($repuestoEntity);
-                               array_push($arrayReportResult,$result);
-                            }
-
-                            $siniestroRepuestoTable = TableRegistry::get("siniestro_repuesto");
-                            $siniestroRepuestoEntity = null;
-
-                            if(isset($siniestroJSON['siniestro']['siniestro_id'])){
-                                $siniestroRepuestoTable->deleteAll(array('siniestro_id'=>$siniestroJSON['siniestro']['siniestro_id']));
-                            }
-
-
-                            foreach($arrayReportResult as $row){
-                                $siniestroRepuestoEntity = $siniestroRepuestoTable->newEntity();
-                                $siniestroRepuestoEntity->siniestro_id =$siniestro['siniestro_id'];
-                                $siniestroRepuestoEntity->repuesto_id = $row['repuesto_id'];
-                                $siniestroRepuestoTable->save($siniestroRepuestoEntity);
                             }
 
                         }
@@ -424,7 +409,7 @@ class SiniestroController extends JcrAPIController{
                 'siniestroAuto.fecha_cierre')))
                 ->join(array(
                     'poliza' => array('table'=>'poliza','type'=>'INNER','conditions'=>'Siniestro.poliza_id = poliza.poliza_id'),
-                    'siniestroAuto' =>array('table'=>'siniestro_automovil','type'=>'INNER','conditions'=>'Siniestro.siniestro_id = siniestroAuto.siniestro_id'),
+                    'siniestroAuto' =>array('table'=>'siniestro_automovil','type'=>'INNER','conditions'=>'Siniestro.siniestro_id = siniestroAuto.siniestro_id')
                 ))
                 ->where(array('Siniestro.siniestro_id'=>$siniestroId));
 
@@ -432,7 +417,7 @@ class SiniestroController extends JcrAPIController{
 
                 $siniestroFound = $siniestroFound->toArray();
 
-                $siniestroRepuestoTable = TableRegistry::get("SiniestroRepuesto");
+                /*$siniestroRepuestoTable = TableRegistry::get("SiniestroRepuesto");
                 $siniestroRepuestoFound = $siniestroRepuestoTable->find()->where(array('siniestro_id'=>$siniestroId))->contain(array('Repuestos'));
 
                 if($siniestroRepuestoFound->count() > 0){
@@ -441,7 +426,12 @@ class SiniestroController extends JcrAPIController{
                     $siniestroFound['repuestos'] = $siniestroRepuestoFound;
                 }else{
                     $siniestroFound['repuestos'] = [];
-                }
+                }*/
+
+
+
+
+
             }else{
                 $siniestroFound = null;
             }
@@ -523,5 +513,21 @@ class SiniestroController extends JcrAPIController{
 
         Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
+    }
+
+    /**
+     * Metodo para obtener lista de repuestos de un siniestro auto
+     * @param $siniestro_automovil_id
+     * @return null
+     */
+    private function getRepuestosAuto($siniestro_automovil_id){
+
+        $repuestoTable = TableRegistry::get("Repuestos");
+        $result = null;
+
+        //$repuestoFound = ;
+
+
+        return $result;
     }
 }
