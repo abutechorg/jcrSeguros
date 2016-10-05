@@ -400,6 +400,7 @@ class SiniestroController extends JcrAPIController{
                 'poliza.prima_total',
                 'poliza.aseguradora_id',
                 'poliza.numero_recibo',
+                'siniestroAuto.siniestro_automovil_id',
                 'siniestroAuto.fecha_ocurrencia',
                 'siniestroAuto.fecha_declaracion',
                 'siniestroAuto.fecha_inspeccion',
@@ -414,24 +415,8 @@ class SiniestroController extends JcrAPIController{
                 ->where(array('Siniestro.siniestro_id'=>$siniestroId));
 
             if($siniestroFound->count() > 0){
-
                 $siniestroFound = $siniestroFound->toArray();
-
-                /*$siniestroRepuestoTable = TableRegistry::get("SiniestroRepuesto");
-                $siniestroRepuestoFound = $siniestroRepuestoTable->find()->where(array('siniestro_id'=>$siniestroId))->contain(array('Repuestos'));
-
-                if($siniestroRepuestoFound->count() > 0){
-
-                    $siniestroRepuestoFound = $siniestroRepuestoFound->toArray();
-                    $siniestroFound['repuestos'] = $siniestroRepuestoFound;
-                }else{
-                    $siniestroFound['repuestos'] = [];
-                }*/
-
-
-
-
-
+                $siniestroFound['repuestos'] = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
             }else{
                 $siniestroFound = null;
             }
@@ -525,8 +510,11 @@ class SiniestroController extends JcrAPIController{
         $repuestoTable = TableRegistry::get("Repuestos");
         $result = null;
 
-        //$repuestoFound = ;
+        $repuestoFound = $repuestoTable->find()->where(array('siniestro_automovil_id'=>$siniestro_automovil_id));
 
+        if($repuestoFound->count() > 0){
+            $result = $repuestoFound->toArray();
+        }
 
         return $result;
     }
