@@ -12,12 +12,12 @@ use Cake\ORM\Table;
 class PolizaTable extends Table{
 
 
-    public function initialize(array $config){
+    public function initialize(array $config)
+    {
 
         parent::initialize($config);
         $this->table('poliza');
         $this->primaryKey("poliza_id");
-        $this->belongsTo("TipoPoliza",array('foreignKey'=>'tipo_poliza_id'));
         $this->belongsTo("Aseguradora",array('foreignKey'=>'aseguradora_id'));
         $this->belongsTo("Ramo",array('foreignKey'=>'ramo_id'));
 

@@ -14,9 +14,11 @@ class CoberturaTable extends Table
     public function initialize(array $config)
     {
         parent::initialize($config);
-
         $this->table('cobertura');
         $this->primaryKey('cobertura_id');
-        $this->belongsTo('Ramo',array('foreignKey'=>'ramo_id'));
+        $this->belongsToMany('DescripcionCobertura',
+            array('targetForeignKey' => 'descripcion_cobertura_id',
+                'foreignKey' => 'cobertura_id',
+                'joinTable' => 'cobertura_descripcion_cobertura;'));
     }
 }
