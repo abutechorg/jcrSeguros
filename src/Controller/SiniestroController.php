@@ -95,6 +95,8 @@ class SiniestroController extends JcrAPIController{
                 $siniestroEntity->numero_siniestro = $siniestroJSON['siniestro']['numero_siniestro'];
                 $siniestroEntity->monto_siniestro = $siniestroJSON['siniestro']['monto_siniestro'];
                 $siniestroEntity->tipo_siniestro_id = $siniestroJSON['siniestro']['tipo_siniestro_id'];
+                $siniestroEntity->observaciones_ordenes = $siniestroJSON['siniestro']['observaciones_ordenes'];
+
 
                 // guardando el sinestro en tabla siniestro
                 $siniestro = $siniestroTable->save($siniestroEntity);
@@ -115,7 +117,6 @@ class SiniestroController extends JcrAPIController{
                         $siniestroAutoEntity->fecha_ocurrencia = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_ocurrencia']);
                         $siniestroAutoEntity->fecha_declaracion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_declaracion']);
                         $siniestroAutoEntity->fecha_inspeccion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_inspeccion']);
-                        $siniestroAutoEntity->observaciones_odenes = $siniestroJSON['auto']['observaciones_odenes'];
                         $siniestroAutoEntity->taller_propuesto = $siniestroJSON['auto']['taller_propuesto'];
                         $siniestroAutoEntity->fecha_entrada_taller = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_entrada_taller']);
                         $siniestroAutoEntity->fecha_cierre = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_cierre']);
@@ -127,7 +128,7 @@ class SiniestroController extends JcrAPIController{
                             // si se guarda los datos en la tabla Repuestos
                             $repuestoAutoTable =  TableRegistry::get("Repuestos");
 
-                            $listRepuesto = $siniestroJSON['auto']['respuestos'];
+                            $listRepuesto = $siniestroJSON['auto']['repuestos'];
 
                             $repuestoEntity = null;
 
@@ -396,14 +397,17 @@ class SiniestroController extends JcrAPIController{
                 'numero_siniestro',
                 'monto_siniestro',
                 'monto_siniestro',
+                'tipo_siniestro_id',
+                'observaciones_ordenes',
                 'poliza.numero_poliza',
                 'poliza.prima_total',
                 'poliza.aseguradora_id',
                 'poliza.numero_recibo',
+                'siniestroAuto.siniestro_automovil_id',
                 'siniestroAuto.fecha_ocurrencia',
+                'siniestroAuto.taller_propuesto',
                 'siniestroAuto.fecha_declaracion',
                 'siniestroAuto.fecha_inspeccion',
-                'siniestroAuto.observaciones_odenes',
                 'siniestroAuto.taller_propuesto',
                 'siniestroAuto.fecha_entrada_taller',
                 'siniestroAuto.fecha_cierre')))
@@ -414,24 +418,8 @@ class SiniestroController extends JcrAPIController{
                 ->where(array('Siniestro.siniestro_id'=>$siniestroId));
 
             if($siniestroFound->count() > 0){
-
                 $siniestroFound = $siniestroFound->toArray();
-
-                /*$siniestroRepuestoTable = TableRegistry::get("SiniestroRepuesto");
-                $siniestroRepuestoFound = $siniestroRepuestoTable->find()->where(array('siniestro_id'=>$siniestroId))->contain(array('Repuestos'));
-
-                if($siniestroRepuestoFound->count() > 0){
-
-                    $siniestroRepuestoFound = $siniestroRepuestoFound->toArray();
-                    $siniestroFound['repuestos'] = $siniestroRepuestoFound;
-                }else{
-                    $siniestroFound['repuestos'] = [];
-                }*/
-
-
-
-
-
+                $siniestroFound[0]['repuestos'] = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
             }else{
                 $siniestroFound = null;
             }
@@ -525,8 +513,11 @@ class SiniestroController extends JcrAPIController{
         $repuestoTable = TableRegistry::get("Repuestos");
         $result = null;
 
-        //$repuestoFound = ;
+        $repuestoFound = $repuestoTable->find()->where(array('siniestro_automovil_id'=>$siniestro_automovil_id));
 
+        if($repuestoFound->count() > 0){
+            $result = $repuestoFound->toArray();
+        }
 
         return $result;
     }

@@ -31,7 +31,7 @@ class PolizaController extends JcrAPIController
                     $polizaRequest = $jsonObject['JcrParameters']["Poliza"];
                     $polizaTable = TableRegistry::get("Poliza");
                     $polizaCoberturaTable = TableRegistry::get("PolizaCobertura");
-                    $clienteTable = TableRegistry::get("Cliente");
+                    $clienteTable = TableRegistry::get("Clientes");
                     $conn = $polizaTable->connection();
                     //bloque transaccional de salvado de poliza
                     $conn->transactional(function () use (
@@ -149,7 +149,7 @@ class PolizaController extends JcrAPIController
         $polizaEntity->numero_poliza = $polizaJson['numero_poliza'];
         $polizaEntity->ramo_id = $polizaJson['ramo']['ramo_id'];
         $polizaEntity->agente = $polizaJson['agente_helper'];
-        $polizaEntity->status = 1;
+        $polizaEntity->status_id = 1;
         $polizaEntity->aseguradora_id = $polizaJson['aseguradora_id'];
         $polizaEntity->numero_recibo = $polizaJson['numero_recibo'];
         $polizaEntity->referencia = $polizaJson['referencia'];

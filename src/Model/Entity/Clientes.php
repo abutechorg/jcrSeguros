@@ -1,17 +1,14 @@
 <?php
-
 /**
  * Created by PhpStorm.
- * User: Gualdo de la cruz
- * Date: 05/10/2016
- * Time: 10:45 AM
+ * User: VladimirIlich
+ * Date: 5/10/2016
+ * Time: 11:20
  */
-
 
 use Cake\ORM\Entity;
 
-class Cliente extends Entity
-{
+class Clientes extends Entity{
 
     /**
      * Fields that can be mass assigned using newEntity() or patchEntity().
@@ -25,6 +22,5 @@ class Cliente extends Entity
     protected $_accessible = [
         '*' => true
     ];
-
 
 }

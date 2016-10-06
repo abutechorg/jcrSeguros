@@ -27,7 +27,7 @@ class ClientController extends JcrAPIController
      */
     function createOrEditAClient($clientJson)
     {
-        $clienteTable = TableRegistry::get("Cliente");
+        $clienteTable = TableRegistry::get("Clientes");
         $clientObject = $clienteTable->newEntity();
         if (isset($clientJson['cliente_id'])) {
             $clientObject->cliente_id = $clientJson['cliente_id'];
@@ -97,7 +97,7 @@ class ClientController extends JcrAPIController
                 if ($parameterValidation['code'] == 0) {
 
                     $documentNumber = $jsonReceived['JcrParameters']["Client"]['document_number'];
-                    $clienteTable = TableRegistry::get("Cliente");
+                    $clienteTable = TableRegistry::get("Clientes");
                     $clientFound = $clienteTable->find()->where(array('documento_id_cliente LIKE' => '%' . $documentNumber . '%'));
 
                     Log::info($clientFound);
@@ -140,7 +140,7 @@ class ClientController extends JcrAPIController
      */
     function getClientById($clienteId)
     {
-        $clienteTable = TableRegistry::get("Cliente");
+        $clienteTable = TableRegistry::get("Clientes");
         $clienteResult = $clienteTable->find()->where(array('cliente_id' => $clienteId));
         if($clienteResult->count() > 0){
             $clienteResult = $clienteResult->toArray()[0];
