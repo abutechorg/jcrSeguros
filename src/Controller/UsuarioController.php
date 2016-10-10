@@ -133,9 +133,6 @@ class UsuarioController extends JcrAPIController{
             $result = $userTable->save($users);
             Log::info('User ID: ' . $result['usuario_id']);
 
-            $result = $this->addPhoneToAUser($userJSON['Phones'],$result['usuario_id']);
-            //agregar tambien que ingresar una direcion ams elaborada me imagino???
-
         } catch (\Exception $e) {
             Log::info("Error creando usuario");
             Log::info($e->getMessage());
@@ -145,48 +142,7 @@ class UsuarioController extends JcrAPIController{
     }
 
 
-    /**
-     * add phone numbers to a user
-     */
-    private function addPhoneToAUser($phoneJson, $userID)
-    {
-        $result = null;
 
-        try {
-
-            Log::info($phoneJson);
-
-            $phoneNumbersTable = TableRegistry::get("Telefonos");
-            $phoneNumbersRelationshipTable = TableRegistry::get("UsuariosTelefonos");
-
-            $phoneIdChecker = false;
-            $result = array();
-
-            foreach ($phoneJson as $phone) {
-                $phoneNumber = $phoneNumbersTable->newEntity();
-                $phoneNumber = $phoneNumbersTable->patchEntity($phoneNumber, $phone);
-                if (isset($phoneNumber->telefono_id)) {
-                    $phoneIdChecker = true;
-                }
-                $resultOfSave = $phoneNumbersTable->save($phoneNumber);
-                array_push($result, $resultOfSave);
-                Log::info('PhoneId checker: ' . $phoneIdChecker);
-                if (!$phoneIdChecker) {
-                    $relationShip = $phoneNumbersRelationshipTable->newEntity();
-                    $relationShip->telefono_id = $resultOfSave->telefono_id;
-                    $relationShip->usuario_id = $userID;
-                    $resultOfSave = $phoneNumbersRelationshipTable->save($relationShip);
-                    array_push($result, $resultOfSave);
-                }
-
-            }
-        } catch (\Exception $e) {
-            Log::info("Error salvando numericos telefonicos del usuario: " . $e->getMessage());
-            $result = null;
-        }
-
-        return $result;
-    }
     /**
      * @api {post} /Usuario/borrarUsuario Create A New User in the system
      * @apiName borrarUsuario
@@ -490,8 +446,7 @@ class UsuarioController extends JcrAPIController{
                     $userTable = TableRegistry::get("Usuarios");
 
                     $userFound = $userTable->find()
-                    ->where(array('usuario_id'=>$user_id,'status_id'=>1))
-                    ->contain(array('Telefonos'));
+                    ->where(array('usuario_id'=>$user_id,'status_id'=>1));
 
                     if($userFound->count() > 0){
                         $userFound = $userFound->toArray();

@@ -15,7 +15,7 @@ use App\Util\ReaxiumApiMessages;
 use App\Util\ReaxiumUtil;
 
 
-
+define('SYSTEM_ACTIVE_MENU',1);
 class SystemListController extends JcrAPIController{
 
 
@@ -91,7 +91,10 @@ class SystemListController extends JcrAPIController{
                          ->where(array('status_id'=>1))
                          ->contain(array('SubMenuAplicacion'))->order(array('name_menu desc'));
 
-                     if($menuOptionFound->count()>0){
+                     Log::info(json_encode($menuOptionFound));
+
+                     if($menuOptionFound->count() > 0){
+
                          $menuOptionFound = $menuOptionFound->toArray();
 
                          $arrayMenuFinal = $this->getActiveMenu($tipo_usuario,$menuOptionFound);
@@ -147,6 +150,7 @@ class SystemListController extends JcrAPIController{
 
             if($accessOptionsFound->count() > 0){
 
+
                 $accessOptionsFound =  $accessOptionsFound->toArray();
 
                 foreach($arrayMenu as $menu){
@@ -155,7 +159,10 @@ class SystemListController extends JcrAPIController{
 
                         if($menu['menu_id'] == $access['menu_id']){
 
-                            if($access['active_menu'] == ReaxiumApiMessages::$ACTIVE_MENU_FOR_TYPE_USER){
+                            Log::info("esta entrando aqui".$access['active_menu'] );
+
+                            if($access['active_menu'] == SYSTEM_ACTIVE_MENU){
+
                                 array_push($arrayResponse,$menu);
                             }
                         }
@@ -246,7 +253,7 @@ class SystemListController extends JcrAPIController{
                 if(isset($userName) && isset($passUser)){
 
                     $userTable = TableRegistry::get("Usuarios");
-                    $userFound = $userTable->find()->where(array('correo'=>$userName,'clave'=>$passUser,'tipo_usuario_id in'=>array(1,2,3)));
+                    $userFound = $userTable->find()->where(array('correo'=>$userName,'clave'=>$passUser,'tipo_usuario_id in'=>array(1,2,3,4)));
 
                     Log::info($userFound);
 
@@ -281,4 +288,87 @@ class SystemListController extends JcrAPIController{
         $this->response->body(json_encode($response));
     }
 
+
+    /**
+     * Servicio para obtener todos los accesos por usuario
+     */
+    public function getAccessActiveMenu()
+    {
+
+        Log::info("Looking for the access type list menu");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+
+        $response = parent::setSuccessfulResponse($response);
+        $response['JcrResponse']['object'] = $this->getDataAccessOptionsMenu();
+        $this->response->body(json_encode($response));
+
+    }
+
+
+
+    /**
+     * @return $this|array
+     */
+
+    private function getDataAccessOptionsMenu()
+    {
+
+        $accessOptions = TableRegistry::get('AccesoOpcionesRol');
+        $accessOptionsFound = $accessOptions->find()->order(array('tipo_usuario_id'));
+        if ($accessOptionsFound->count() > 0) {
+            $accessOptionsFound = $accessOptionsFound->toArray();
+        }
+
+        return $accessOptionsFound;
+    }
+
+
+    /**
+     * Servicio para actualizar permisos en menu
+     */
+    public function updateAccessMenuByUserRol()
+    {
+
+        Log::info("update access menu for user");
+
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+
+            try {
+
+                $objAccess = !isset($jsonObject['JcrParameters']['JcrSystem']['object']) ? null : $jsonObject['JcrParameters']['JcrSystem']['object'];
+
+                if (isset($objAccess)) {
+
+                    $accessOptionsTable = TableRegistry::get("AccesoOpcionesRol");
+
+                    foreach ($objAccess as $access) {
+                        $accessOptionsFound = $accessOptionsTable->updateAll(array('active_menu' => $access['active_menu']), array('tipo_usuario_id' => $access['tipo_usuario_id'], 'menu_id' => $access['menu_id']));
+                    }
+
+                    Log::info(json_encode($accessOptionsFound));
+
+                    $response = parent::setSuccessfulResponse($response);
+
+                } else {
+                    $response = parent::seInvalidParametersMessage($response);
+                }
+
+            } catch (\Exception $e) {
+                Log::info("Error get options menu " . $e->getMessage());
+                $response = $this->setInternalServiceError($response);
+            }
+
+        } else {
+            $response = parent::seInvalidParametersMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
 }
