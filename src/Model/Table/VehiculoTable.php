@@ -17,6 +17,6 @@ class VehiculoTable extends Table
 
         $this->table('vehiculo');
         $this->primaryKey('vehiculo_id');
-        $this->belongsTo('Usuarios',array('foreignKey'=>'usuario_id'));
+        $this->belongsTo('MarcaVehiculo',array('foreignKey'=>'vehiculo_marca_id'));
     }
 }

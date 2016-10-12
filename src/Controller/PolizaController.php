@@ -12,7 +12,8 @@ use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
 
-
+define('RAMO_AUTO_FLOTA',3);
+define('RAMO_AUTO_INDIVIDUAL',4);
 class PolizaController extends JcrAPIController
 {
 
@@ -32,15 +33,20 @@ class PolizaController extends JcrAPIController
                     $polizaTable = TableRegistry::get("Poliza");
                     $polizaCoberturaTable = TableRegistry::get("PolizaCobertura");
                     $clienteTable = TableRegistry::get("Clientes");
+                    $vehiculoTable = TableRegistry::get("Vehiculo");
+                    $relationPolizaVehiculo = TableRegistry::get("PolizaVehiculo");
+
                     $conn = $polizaTable->connection();
                     //bloque transaccional de salvado de poliza
                     $conn->transactional(function () use (
                         $polizaRequest,
                         $polizaTable,
                         $polizaCoberturaTable,
-                        $clienteTable
+                        $clienteTable,
+                        $vehiculoTable,
+                        $relationPolizaVehiculo
                     ) {
-                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable, $polizaRequest);
+                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo, $polizaRequest);
                     });
 
                     $response = parent::setSuccessfulSave($response);
@@ -71,10 +77,11 @@ class PolizaController extends JcrAPIController
      * @param $polizaJson
      * @throws Exception
      */
-    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable, $polizaJson)
+    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo,$polizaJson)
     {
         $clienteController = new ClientController();
         $polizaCreationResult = null;
+        $poliza_id = null;
         if ($polizaJson['asegurado']['es_tomador']) {
             $aseguradoResult = $clienteController->createOrEditAClientBatch($clienteTable, $polizaJson['asegurado']);
             $polizaCreationResult = $this->crearPoliza($polizaTable, $aseguradoResult['cliente_id'], $aseguradoResult['cliente_id'], $polizaJson);
@@ -83,7 +90,12 @@ class PolizaController extends JcrAPIController
             $tomadorResultResult = $clienteController->createOrEditAClientBatch($clienteTable, $polizaJson['tomador']);
             $polizaCreationResult = $this->crearPoliza($polizaTable, $aseguradoResult['cliente_id'], $tomadorResultResult['cliente_id'], $polizaJson);
         }
+
+
         if ($polizaCreationResult) {
+
+            $poliza_id = $polizaCreationResult['poliza_id'];
+            $ramoPoliza_id = $polizaCreationResult['ramo_id'];
 
             $polizaCoberturaResult = $this->agregarCoberturaALaPoliza($polizaCoberturaTable, $polizaCreationResult, $polizaJson);
 
@@ -91,7 +103,30 @@ class PolizaController extends JcrAPIController
                 Log::info($polizaCoberturaResult);
                 throw new Exception("Fallo la creacion de la poliza");
             } else {
-                Log::info("Proceso de creacion de poliza finaliado con exito");
+
+                //validando si el ramo de auto
+                if($ramoPoliza_id == RAMO_AUTO_FLOTA || $ramoPoliza_id == RAMO_AUTO_INDIVIDUAL){
+                    $vehiculoCtrl = new VehiculoController();
+                    $vehiculoResult = $vehiculoCtrl->createAVehiculo($vehiculoTable,$polizaJson['vehiculo']);
+
+                    if(isset($vehiculoResult)){
+
+                        $editMode = isset($polizaJson['poliza_id']) ? true : false;
+                        $relationVehiPoli = $vehiculoCtrl->relationShipPolizaVehiculo($relationPolizaVehiculo,$poliza_id,$vehiculoResult,$editMode);
+
+                        if(isset($relationVehiPoli)){
+                            Log::info("Proceso de creacion de poliza finaliado con exito");
+                        }else{
+                            Log::info("Error relacionando vehiculo con poliza");
+                            throw new Exception("Error relacionando vehiculo con poliza");
+                        }
+
+                    }else{
+                        Log::info("Error salvando vehiculo");
+                        throw new Exception("Fallo la creacion de vehiculo");
+                    }
+
+                }
             }
         } else {
             Log::info($polizaCreationResult);
@@ -341,7 +376,7 @@ class PolizaController extends JcrAPIController
                         $polizaFound[0]['tomador'] = $this->getUserById($polizaFound[0]['usuario_id_tomador']);
                         $polizaFound[0]['titular'] = $this->getUserById($polizaFound[0]['usuario_id_titular']);
                         $polizaFound[0]['agente'] = $this->getUserById($polizaFound[0]['usuario_id_agente']);
-                        $polizaFound[0]['beneficiarios'] = $this->getBeneficarios($polizaFound[0]['poliza_id']);
+
 
                         $response['JcrResponse']['object'] = $polizaFound;
                         $response = parent::setSuccessfulResponse($response);
@@ -398,6 +433,21 @@ class PolizaController extends JcrAPIController
                             $polizaFound[0]['asegurado']['es_tomador'] = true;
                         }
                         $polizaFound[0]['ramo']['coberturas'] = $this->getCoberturasDeLaPoliza($poliza_id);
+
+                        if($polizaFound[0]['ramo_id'] == RAMO_AUTO_INDIVIDUAL ||
+                            $polizaFound[0]['ramo_id'] == RAMO_AUTO_FLOTA){
+
+                            $vehiculoCtrl = new VehiculoController();
+                            $vehiculoListPoliza = $vehiculoCtrl->getVehiculoRelationPoliza($poliza_id);
+
+                            if(isset($vehiculoListPoliza)){
+                                $polizaFound[0]['vehiculo'] = $vehiculoListPoliza;
+                            }else{
+                                $polizaFound[0]['vehiculo'] = array();
+                            }
+
+                        }
+
 
                         $response['JcrResponse']['object'] = $polizaFound;
                         $response = parent::setSuccessfulResponse($response);
@@ -512,38 +562,7 @@ class PolizaController extends JcrAPIController
     }
 
 
-    private function getBeneficarios($poliza_id)
-    {
 
-        $polizaBeneficTable = TableRegistry::get("PolizaBeneficiario");
-        $arrayBeneficiarios = array();
-        $entityUser = null;
-
-        $poliFound = $polizaBeneficTable->find()
-            ->where(array('poliza_id' => $poliza_id))
-            ->contain(array('Usuarios'));
-
-        if ($poliFound->count() > 0) {
-            $poliFound = $poliFound->toArray();
-
-
-            foreach ($poliFound as $row) {
-
-                $entityUser = $polizaBeneficTable->newEntity();
-                $entityUser->usuario_id = $row['usuario']['usuario_id'];
-                $entityUser->nombre = $row['usuario']['nombre'];
-                $entityUser->apellido = $row['usuario']['apellido'];
-                $entityUser->documento_id = $row['usuario']['documento_id'];
-                $typeUser = $this->getTypeUser($row['usuario']['tipo_usuario_id']);
-                $entityUser->tipo_usuario_id = $typeUser[0]['tipo_usuario_id'];
-                $entityUser->tipo_usuario_name = $typeUser[0]['tipo_usuario_nombre'];
-                array_push($arrayBeneficiarios, $entityUser);
-            }
-
-        }
-
-        return $arrayBeneficiarios;
-    }
 
 
     private function getTypeUser($tipo_usuario_id)
