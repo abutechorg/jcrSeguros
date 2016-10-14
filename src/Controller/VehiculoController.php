@@ -590,7 +590,7 @@ class VehiculoController extends JcrAPIController
                     $entityVehiculo = $PolizaVehiTable->newEntity();
                     $entityVehiculo->vehiculo_id = $row['vehiculo']['vehiculo_id'];
                     $entityVehiculo->vehiculo_placa = $row['vehiculo']['vehiculo_placa'];
-                    $entityVehiculo->vehiculo_marca = $this->getMarcaVehiculo($row['vehiculo']['vehiculo_marca_id']);
+                    $entityVehiculo->marca_vehiculo= $this->getMarcaVehiculo($row['vehiculo']['vehiculo_marca_id']);
                     $entityVehiculo->vehiculo_modelo = $row['vehiculo']['vehiculo_modelo'];
                     $entityVehiculo->vehiculo_ano = $row['vehiculo']['vehiculo_ano'];
                     $entityVehiculo->vehiculo_version = $row['vehiculo']['vehiculo_version'];
