@@ -679,7 +679,7 @@ class PolizaController extends JcrAPIController
                         $entityPoliza->poliza_id = $poliza['poliza_id'];
                         $entityPoliza->numero_poliza = $poliza['numero_poliza'];
                         $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                        $entityPoliza->agente = $poliza['numero_poliza'];
+                        $entityPoliza->agente = $poliza['agente'];
                         $entityPoliza->prima_total = $poliza['prima_total'];
                         $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
                         $entityPoliza->ramo = $poliza['ramo'];
@@ -692,7 +692,7 @@ class PolizaController extends JcrAPIController
                         $entityPoliza->poliza_id = $poliza['poliza_id'];
                         $entityPoliza->numero_poliza = $poliza['numero_poliza'];
                         $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                        $entityPoliza->agente = $poliza['numero_poliza'];
+                        $entityPoliza->agente = $poliza['agente'];
                         $entityPoliza->prima_total = $poliza['prima_total'];
                         $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
                         $entityPoliza->ramo = $poliza['ramo'];

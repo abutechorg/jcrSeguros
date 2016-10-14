@@ -34,6 +34,7 @@
             <th>Ramo</th>
             <th>Vigencia</th>
             <th>Agente</th>
+            <th>Aseguradora</th>
             <th>Prima</th>
             <th>SA</th>
 
@@ -56,6 +57,7 @@
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
+                        <td class="font"><?= $poliza['aseguradora']; ?></td>
                         <td class="font"><?= $poliza['prima_total']; ?></td>
                         <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
                     </tr>
@@ -72,6 +74,7 @@
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
+                        <td class="font"><?= $poliza['aseguradora']; ?></td>
                         <td class="font"><?= $poliza['prima_total']; ?></td>
                         <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
                     </tr>
@@ -86,6 +89,7 @@
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
+                        <td class="font"><?= $poliza['aseguradora']; ?></td>
                         <td class="font"><?= $poliza['prima_total']; ?></td>
                         <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
                     </tr>
