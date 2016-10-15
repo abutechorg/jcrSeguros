@@ -148,6 +148,9 @@ class PolizaController extends JcrAPIController
     {
         $coberturasDeLaPoliza = $polizaJson['ramo']['coberturas'];
         $polizaCoberturaReuslt = false;
+
+        $polizaCoberturaTable->deleteAll(array('poliza_id'=>$polizaSalvada['poliza_id']));
+
         foreach ($coberturasDeLaPoliza as $cobertura) {
             $descripcionDeCoberturasEnLaPoliza = $cobertura['descripciones_cobertura'];
             foreach ($descripcionDeCoberturasEnLaPoliza as $descripcionDeCobertura) {
@@ -434,7 +437,8 @@ class PolizaController extends JcrAPIController
         $coberturas = array('cobertura_id', 'cobertura_nombre', 'descripciones_cobertura' => array());
         $desCripcionDeCoberturas = array('descripcion_cobertura_id', 'descripcion_cobertura_nombre', 'monto' => '0');
         $polizaCoberturaTabla = TableRegistry::get("PolizaCobertura");
-        $polizaCoberturaResult = $polizaCoberturaTabla->find()->select(array('cobertura_id' => 'Cobertura.cobertura_id',
+        $polizaCoberturaResult = $polizaCoberturaTabla->find()
+            ->select(array('cobertura_id' => 'Cobertura.cobertura_id',
             'cobertura_nombre' => 'Cobertura.cobertura_nombre',
             'descripcion_cobertura_id' => 'DescripcionCobertura.descripcion_cobertura_id',
             'descripcion_cobertura_nombre' => 'DescripcionCobertura.descripcion_cobertura_nombre',

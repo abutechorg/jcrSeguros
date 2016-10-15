@@ -75,6 +75,9 @@ class ClientController extends JcrAPIController
         if (isset($clientJson['genero_cliente'])) {
             $clientObject->genero_cliente = $clientJson['genero_cliente'];
         }
+        if(isset($clientJson['telefono'])){
+            $clientObject->telefono = $clientJson['telefono'];
+        }
         $result = $clienteTable->save($clientObject);
         return $result;
     }
