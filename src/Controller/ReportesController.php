@@ -139,6 +139,72 @@ class ReportesController extends JcrAPIController{
 
 
 
+    public function getInfoSiniestralidad(){
+
+        Log::info("Obtener informacion siniestralidad");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
+
+        if(parent::validJcrJsonHeader($jsonObject)){
+
+            try{
+
+                $page = $jsonObject['JcrParameters']['Reports']["page"];
+                $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
+
+                $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+                $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+                $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguaradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguaradora_id'];
+                $numero_poliza = !isset($jsonObject['JcrParameters']['Reports']['numero_poliza']) ? null : $jsonObject['JcrParameters']['Reports']['numero_poliza'];
+                $ramo_id = !isset($jsonObject['JcrParameters']['Reports']['ramo_id']) ? null : $jsonObject['JcrParameters']['Reports']['ramo_id'];
+
+                if(isset($page) && isset($start_date) && isset($end_date)){
+
+                    $siniestroCtrl = new SiniestroController();
+                    $siniestroFound = $siniestroCtrl->getSiniestralidadInfo($start_date,$end_date,$aseguaradora_id,$numero_poliza,$ramo_id);
+
+                    Log::info($siniestroFound);
+
+                    $count = $siniestroFound->count();
+                    $this->paginate = array('limit' => $limit, 'page' => $page);
+                    $siniestroFound = $this->paginate($siniestroFound);
+
+
+                    if ($siniestroFound->count() > 0) {
+                        $maxPages = floor((($count - 1) / $limit) + 1);
+                        $userFound = $siniestroFound->toArray();
+                        $response['JcrResponse']['totalRecords'] = $count;
+                        $response['JcrResponse']['totalPages'] = $maxPages;
+                        $response['JcrResponse']['object'] = $userFound;
+                        $response = parent::setSuccessfulResponse($response);
+                    }
+                    else {
+                        $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
+                        $response['JcrResponse']['message'] = 'No Users found';
+                    }
+
+                }
+                else{
+                    $response = parent::setInvalidJsonMessage($response);
+                }
+
+            }
+            catch (\Exception $e){
+                Log::info("Error Saving the User " . $e->getMessage());
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = $e->getMessage();
+            }
+        }
+        else{
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
+
 
     /**
      * @param $template

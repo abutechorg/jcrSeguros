@@ -200,26 +200,6 @@ class PolizaController extends JcrAPIController
     }
 
 
-    private function savePolizaBeneficiarios($beneficiarios, $poliza_id)
-    {
-
-        $polizaBenefTable = TableRegistry::get("PolizaBeneficiario");
-        $entityObj = null;
-
-        $validate = $polizaBenefTable->findByPolizaId($poliza_id);
-
-        if ($validate->count() > 0) {
-            $polizaBenefTable->deleteAll(array('poliza_id' => $poliza_id));
-        }
-
-        foreach ($beneficiarios as $row) {
-            $entityObj = $polizaBenefTable->newEntity();
-            $entityObj->poliza_id = $poliza_id;
-            $entityObj->usuario_id = $row['usuario_id'];
-            $polizaBenefTable->save($entityObj);
-        }
-
-    }
 
     /**
      * Servicio para borrar poliza
@@ -322,6 +302,62 @@ class PolizaController extends JcrAPIController
         $this->response->body(json_encode($response));
     }
 
+
+
+    /**
+     * Servicio para obtener polizas paginadas
+     */
+    public function allPolizaWithPaginationBySiniestro()
+    {
+        Log::info("Consulta todas las polizas Para los siniestros con paginacion");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+            try {
+                if (isset($jsonObject['JcrParameters']['page'])) {
+                    $page = $jsonObject['JcrParameters']["page"];
+                    $sortedBy = !isset($jsonObject['JcrParameters']["sortedBy"]) ? 'numero_poliza' : $jsonObject['JcrParameters']["sortedBy"];
+                    $sortDir = !isset($jsonObject['JcrParameters']["sortDir"]) ? 'desc' : $jsonObject['JcrParameters']["sortDir"];
+                    $filter = !isset($jsonObject['JcrParameters']["filter"]) ? '' : $jsonObject['JcrParameters']["filter"];
+                    $limit = !isset($jsonObject['JcrParameters']["limit"]) ? 10 : $jsonObject['JcrParameters']["limit"];
+
+
+                    $polizaFound = $this->getAllPolizaBySinestros($filter, $sortedBy, $sortDir);
+
+                    $count = $polizaFound->count();
+                    $this->paginate = array('limit' => $limit, 'page' => $page);
+                    $polizaFound = $this->paginate($polizaFound);
+
+                    if ($polizaFound->count() > 0) {
+                        $maxPages = floor((($count - 1) / $limit) + 1);
+                        $polizaFound = $polizaFound->toArray();
+                        $response['JcrResponse']['totalRecords'] = $count;
+                        $response['JcrResponse']['totalPages'] = $maxPages;
+                        $response['JcrResponse']['object'] = $polizaFound;
+                        $response = parent::setSuccessfulResponse($response);
+                    } else {
+                        $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
+                        $response['JcrResponse']['message'] = 'No Poliza found';
+                    }
+                } else {
+                    $response = parent::setInvalidJsonMessage($response);
+                }
+            } catch (\Exception $e) {
+                Log::info("Error buscando poliza en el sistema");
+                Log::info($e->getMessage());
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = 'Error del sistema';
+            }
+        } else {
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
     /**
      * @param $filter
      * @param $sortedBy
@@ -342,7 +378,7 @@ class PolizaController extends JcrAPIController
             $polizaFound = $polizaTable->find()
                 ->where($whereCondition)
                 ->andWhere(array('Poliza.status_id' => 1))
-                ->contain(array('TipoPoliza', 'Aseguradora', 'Ramo'))
+                ->contain(array('Aseguradora', 'Ramo'))
                 ->order(array($sortedBy . ' ' . $sortDir));
         } else {
             //agregar los contain cuando sea necesario
@@ -356,6 +392,39 @@ class PolizaController extends JcrAPIController
     }
 
 
+
+    /**
+     * @param $filter
+     * @param $sortedBy
+     * @param $sortDir
+     * @return $this
+     */
+    private function getAllPolizaBySinestros($filter, $sortedBy, $sortDir)
+    {
+        $polizaTable = TableRegistry::get('Poliza');
+
+        if (trim($filter) != '') {
+            $whereCondition = array(array('OR' => array(
+                array('numero_poliza LIKE' => '%' . $filter . '%'),
+                array('Poliza.ramo_id LIKE' => '%' . $filter . '%'),
+                array('Poliza.aseguradora_id LIKE' => '%' . $filter . '%'))));
+
+            //agregar los contain cuando sea necesario
+            $polizaFound = $polizaTable->find()
+                ->where($whereCondition)
+                ->andWhere(array('Poliza.status_id' => 1,'Poliza.ramo_id in'=>array(1,2,3,4)))
+                ->contain(array('Aseguradora', 'Ramo'))
+                ->order(array($sortedBy . ' ' . $sortDir));
+        } else {
+            //agregar los contain cuando sea necesario
+            $polizaFound = $polizaTable->find()
+                ->where(array('Poliza.status_id' => 1,'Poliza.ramo_id in'=>array(1,2,3,4)))
+                ->contain(array('Aseguradora', 'Ramo'))
+                ->order(array($sortedBy . ' ' . $sortDir));
+        }
+
+        return $polizaFound;
+    }
 
     public function getPolizaById()
     {
@@ -384,6 +453,8 @@ class PolizaController extends JcrAPIController
                         $polizaFound[0]['tomador'] = $clienteController->getClientById($polizaFound[0]['cliente_id_tomador']);
                         if ($polizaFound[0]['cliente_id_tomador'] == $polizaFound[0]['cliente_id_titular']) {
                             $polizaFound[0]['asegurado']['es_tomador'] = true;
+                        }else{
+                            $polizaFound[0]['asegurado']['es_tomador'] = false;
                         }
 
                         $polizaFound[0]['ramo']['coberturas'] = $this->getCoberturasDeLaPoliza($poliza_id);
@@ -620,7 +691,6 @@ class PolizaController extends JcrAPIController
     }
 
 
-    //TODO trabajando aqui
     /**
      * @param $start_date
      * @param $end_date
@@ -706,7 +776,6 @@ class PolizaController extends JcrAPIController
 
         return $result;
     }
-
 
 
     public function getAseguradoraByID($aseguradora_id){

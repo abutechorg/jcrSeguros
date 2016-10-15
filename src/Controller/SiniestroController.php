@@ -300,8 +300,7 @@ class SiniestroController extends JcrAPIController{
         if(trim($filter) != '') {
 
             $whereCondition = array(array('OR' => array(
-                array('numero_siniestro LIKE' => '%' . $filter . '%'),
-                array('vehiculo_id LIKE' => '%' . $filter . '%'))));
+                array('numero_siniestro LIKE' => '%' . $filter . '%'))));
 
             //agregar los contain cuando sea necesario
             $siniestroFound = $siniestroTable->find()
@@ -521,4 +520,73 @@ class SiniestroController extends JcrAPIController{
 
         return $result;
     }
+
+
+    public function getSiniestralidadInfo($start_date,$end_date,$aseguradora_id,$numero_poliza,$ramo){
+
+            try{
+
+                $polizaTable = TableRegistry::get("Poliza");
+                $conditions = array();
+
+                // condicion de fecha y validacion
+                if (isset($start_date)) {
+                    $startDateCondition = array('Poliza.fecha_vencimiento >=' => $start_date);
+                    array_push($conditions, $startDateCondition);
+                    if (isset($end_date)) {
+                        $endDateCondition = array('Poliza.fecha_vencimiento <=' => $end_date);
+                        array_push($conditions, $endDateCondition);
+                    }
+                }
+
+                //condicion aseguradora
+                if(isset($aseguradora_id)){
+                    $aseguradoraCondition = array('Poliza.aseguradora_id'=>$aseguradora_id);
+                    array_push($conditions,$aseguradoraCondition);
+                }
+
+                //condicion numero de poliza
+                if(isset($numero_poliza) && $numero_poliza != ""){
+                    $numeroPolizaCondition = array('Poliza.numero_poliza'=>$numero_poliza);
+                    array_push($conditions,$numeroPolizaCondition);
+                }
+
+                //ramo
+                //condicion numero de poliza
+                if(isset($ramo)){
+                    $ramoCondition = array('Poliza.ramo_id'=>$ramo);
+                    array_push($conditions,$ramoCondition);
+                }
+
+
+                $polizaFound = $polizaTable->find('all',array('fields'=>array(
+                    'Poliza.poliza_id',
+                    'Poliza.numero_poliza',
+                    'Poliza.ramo_id',
+                    'Poliza.cliente_id_tomador',
+                    'Poliza.cliente_id_titular',
+                    'Poliza.agente',
+                    'Poliza.aseguradora_id',
+                    'Poliza.prima_total',
+                    'Poliza.fecha_vencimiento',
+                    'siniestro.siniestro_id',
+                    'siniestro.numero_siniestro',
+                    'siniestro.monto_siniestro',
+                    'siniestro.tipo_siniestro_id'
+                )))
+                ->join(array(
+                    'siniestro'=>array('table'=>'siniestro','type'=>'INNER','conditions'=>'Poliza.poliza_id = siniestro.poliza_id')
+                ))
+                ->where($conditions);
+
+
+            }catch(\Exception $e){
+                Log::info("Error buscado siniestros");
+                Log::info($e->getMessage());
+                $polizaFound = null;
+            }
+
+        return $polizaFound;
+    }
+
 }
