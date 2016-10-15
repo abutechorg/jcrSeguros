@@ -8,6 +8,7 @@
 
 namespace App\Controller;
 
+use App\Util\ReaxiumUtil;
 use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
@@ -352,57 +353,6 @@ class PolizaController extends JcrAPIController
     }
 
 
-    public function searchPolizaById()
-    {
-        Log::info("Informacion poliza por ID");
-        parent::setResultAsAJson();
-        $response = parent::getDefaultJcrMessage();
-        $jsonObject = parent::getJsonReceived();
-        Log::info('Object received: ' . json_encode($jsonObject));
-
-        if (parent::validJcrJsonHeader($jsonObject)) {
-            $poliza_id = !isset($jsonObject['JcrParameters']['Poliza']['poliza_id']) ? null : $jsonObject['JcrParameters']['Poliza']['poliza_id'];
-
-            try {
-                if (isset($poliza_id)) {
-                    $polizaTable = TableRegistry::get("Poliza");
-                    $polizaFound = $polizaTable->find()
-                        ->where(array('poliza_id' => $poliza_id))
-                        ->contain(array('Aseguradora', 'Ramo'));
-
-                    if ($polizaFound->count() > 0) {
-
-                        $polizaFound = $polizaFound->toArray();
-                        $polizaFound[0]['tomador'] = $this->getUserById($polizaFound[0]['usuario_id_tomador']);
-                        $polizaFound[0]['titular'] = $this->getUserById($polizaFound[0]['usuario_id_titular']);
-                        $polizaFound[0]['agente'] = $this->getUserById($polizaFound[0]['usuario_id_agente']);
-
-
-                        $response['JcrResponse']['object'] = $polizaFound;
-                        $response = parent::setSuccessfulResponse($response);
-                    } else {
-                        $polizaFound = null;
-                        $response['JcrResponse']['code'] = "1";
-                        $response['JcrResponse']['message'] = "Poliza no encontrada en sistema";
-                        $response['JcrResponse']['object'] = $polizaFound;
-                        $response = parent::setSuccessfulResponse($response);
-                    }
-                } else {
-                    $response = parent::setInvalidJsonMessage($response);
-                }
-            } catch (\Exception $e) {
-                Log::info("Error borrando poliza del sistema");
-                Log::info($e->getMessage());
-                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                $response['JcrResponse']['message'] = 'Error del sistema';
-            }
-        } else {
-            $response = parent::setInvalidJsonMessage($response);
-        }
-
-        Log::info("Responde Object: " . json_encode($response));
-        $this->response->body(json_encode($response));
-    }
 
     public function getPolizaById()
     {
@@ -432,6 +382,7 @@ class PolizaController extends JcrAPIController
                         if ($polizaFound[0]['cliente_id_tomador'] == $polizaFound[0]['cliente_id_titular']) {
                             $polizaFound[0]['asegurado']['es_tomador'] = true;
                         }
+
                         $polizaFound[0]['ramo']['coberturas'] = $this->getCoberturasDeLaPoliza($poliza_id);
 
                         if($polizaFound[0]['ramo_id'] == RAMO_AUTO_INDIVIDUAL ||
@@ -493,42 +444,78 @@ class PolizaController extends JcrAPIController
         if ($polizaCoberturaResult->count() > 0) {
 
             $polizaCoberturaResult = $polizaCoberturaResult->toArray();
+            $auxArray = ReaxiumUtil::arrayCopy($polizaCoberturaResult);
 
-            Log::info(json_encode($polizaCoberturaResult));
+            Log::info("POliza Cobertura: ".json_encode($polizaCoberturaResult));
+
 
             foreach ($polizaCoberturaResult as $coberturasEnPoliza) {
-                $encontroCobertura = false;
-                foreach ($coberturasDeLaPoliza as $coberturas) {
 
-                    if ($coberturas['cobertura_id'] == $coberturasEnPoliza['cobertura_id']) {
+                $listCoberturas = $this->extraerListDecripcionCoberturas($coberturasEnPoliza['cobertura_id'],$auxArray);
 
-                        $encontroCobertura = true;
-                        $desCripcionDeCoberturas = array('descripcion_cobertura_id' => $coberturasEnPoliza['descripcion_cobertura_id'],
-                            'descripcion_cobertura_nombre' => $coberturasEnPoliza['descripcion_cobertura_nombre'],
-                            'monto' => $coberturasEnPoliza['monto']);
-                        array_push($coberturas['descripciones_cobertura'], $desCripcionDeCoberturas);
+                if(!$this->existeCoberturaLista($coberturasEnPoliza['cobertura_id'],$coberturasDeLaPoliza)){
 
+                    $arraFinalDCober = array();
+
+                    foreach($listCoberturas as $cober){
+                        $entityCober = $polizaCoberturaTabla->newEntity();
+                        $entityCober->descripcion_cobertura_id = $cober['descripciones_cobertura']['descripcion_cobertura_id'];
+                        $entityCober->descripcion_cobertura_nombre =$cober['descripciones_cobertura']['descripcion_cobertura_nombre'];
+                        $entityCober->monto = $cober['descripciones_cobertura']['monto'];
+                        array_push($arraFinalDCober,$entityCober);
                     }
-                }
-                if (!$encontroCobertura) {
+
 
                     $coberturas = array('cobertura_id' => $coberturasEnPoliza['cobertura_id'],
                         'cobertura_nombre' => $coberturasEnPoliza['cobertura_nombre'],
-                        'descripciones_cobertura' => array());
+                        'descripciones_cobertura' =>$arraFinalDCober);
 
-                    $desCripcionDeCoberturas = array('descripcion_cobertura_id' => $coberturasEnPoliza['descripcion_cobertura_id'],
-                        'descripcion_cobertura_nombre' => $coberturasEnPoliza['descripcion_cobertura_nombre'],
-                        'monto' => $coberturasEnPoliza['monto']);
-
-                    array_push($coberturas['descripciones_cobertura'], $desCripcionDeCoberturas);
                     array_push($coberturasDeLaPoliza, $coberturas);
-
                 }
+
             }
         }
         return $coberturasDeLaPoliza;
     }
 
+
+    private function extraerListDecripcionCoberturas($cobertura_id,$auxArray){
+
+        $polizaCoberturaTabla = TableRegistry::get("PolizaCobertura");
+        $listCoberturas = array();
+
+        foreach($auxArray as $cobertura){
+
+            if($cobertura['cobertura_id'] == $cobertura_id){
+
+                $entityCoberturas = $polizaCoberturaTabla->newEntity();
+                $entityCoberturas->descripciones_cobertura = array('descripcion_cobertura_id'=>$cobertura['descripcion_cobertura_id'],
+                    'descripcion_cobertura_nombre'=>$cobertura['descripcion_cobertura_nombre'],'monto'=>$cobertura['monto']);
+
+                array_push($listCoberturas,$entityCoberturas);
+            }
+
+        }
+
+        return $listCoberturas;
+    }
+
+
+    private function existeCoberturaLista($cobertura_id,$listCobertura){
+
+        $existeCobertura = false;
+
+        foreach($listCobertura as $cobertura){
+
+            if($cobertura['cobertura_id'] == $cobertura_id){
+                $existeCobertura = true;
+                break;
+            }
+
+        }
+
+        return $existeCobertura;
+    }
 
     private function getUserById($user_id)
     {
