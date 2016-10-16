@@ -522,7 +522,7 @@ class SiniestroController extends JcrAPIController{
     }
 
 
-    public function getSiniestralidadInfo($start_date,$end_date,$aseguradora_id,$numero_poliza,$ramo){
+    public function getSiniestralidadInfo($start_date,$end_date,$aseguradora_id,$numero_poliza,$ramo,$mode){
 
             try{
 
@@ -554,7 +554,13 @@ class SiniestroController extends JcrAPIController{
                 //ramo
                 //condicion numero de poliza
                 if(isset($ramo)){
-                    $ramoCondition = array('Poliza.ramo_id'=>$ramo);
+
+                    if($ramo == "P"){
+                        $ramoCondition = array('Poliza.ramo_id in'=>array(1,2));
+                    }else{
+                        $ramoCondition = array('Poliza.ramo_id in'=>array(3,4));
+                    }
+
                     array_push($conditions,$ramoCondition);
                 }
 
@@ -580,6 +586,55 @@ class SiniestroController extends JcrAPIController{
                 ->where($conditions);
 
 
+                if($mode){
+
+                    if($polizaFound->count() > 0){
+
+                        $polizasFound = $polizaFound->toArray();
+
+                        $clientCtrl = new ClientController();
+                        $vehiculoCtrl = new VehiculoController();
+                        $polizaCtrl = new PolizaController();
+
+                        $entityPoliza = null;
+                        $arrayResultFinal = array();
+
+                        foreach($polizasFound as $poliza){
+
+                            $entityPoliza = $polizaTable->newEntity();
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->ramo = $this->getRamoSystem($poliza['ramo_id']);
+                            $entityPoliza->coberturas = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->tipo_siniestro = $poliza['siniestro']['tipo_siniestro_id'];
+                            $entityPoliza->numero_siniestro = $poliza['siniestro']['numero_siniestro'];
+                            $entityPoliza->monto_siniestro = $poliza['siniestro']['monto_siniestro'];
+
+                            if($poliza['siniestro']['tipo_siniestro_id'] == SINIESTRO_VEHICULO){
+                                $entityPoliza->vehiculo = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                            }
+
+                            $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id']);
+                            $entityPoliza->calculo = $this->calculoSiniestro($poliza['siniestro']['monto_siniestro'],$poliza['prima_total']);
+
+
+                            array_push($arrayResultFinal,$entityPoliza);
+
+                        }
+
+                        $polizaFound = ReaxiumUtil::arrayCopy($arrayResultFinal);
+                    }
+                    else{
+                        $polizaFound = null;
+                    }
+
+                }
+
+
             }catch(\Exception $e){
                 Log::info("Error buscado siniestros");
                 Log::info($e->getMessage());
@@ -587,6 +642,29 @@ class SiniestroController extends JcrAPIController{
             }
 
         return $polizaFound;
+    }
+
+
+    public function getRamoSystem($ramo_id){
+
+        $ramoTable = TableRegistry::get("Ramo");
+        $ramoFound = $ramoTable->findByRamoId($ramo_id);
+
+        if($ramoFound->count() > 0){
+            $ramoFound = $ramoFound->toArray();
+        }
+        else{
+            $ramoFound = null;
+        }
+
+        return $ramoFound;
+    }
+
+    public function calculoSiniestro($monto_siniestro,$poliza_prima){
+
+        $result = ($monto_siniestro * 100) / $poliza_prima;
+        $result =  number_format($result, 2, '.', '');
+        return $result;
     }
 
 }

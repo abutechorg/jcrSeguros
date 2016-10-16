@@ -502,7 +502,7 @@ class PolizaController extends JcrAPIController
     }
 
 
-    private function getCoberturasDeLaPoliza($polizaId)
+    public function getCoberturasDeLaPoliza($polizaId)
     {
         $coberturasDeLaPoliza = array();
         $coberturas = array('cobertura_id', 'cobertura_nombre', 'descripciones_cobertura' => array());
@@ -697,7 +697,7 @@ class PolizaController extends JcrAPIController
      * @param $aseguradora_id
      * @return $this|array|null
      */
-    public function getListPolizaRenovaciones($start_date,$end_date,$aseguradora_id){
+    public function getListPolizaRenovaciones($start_date,$end_date,$aseguradora_id,$mode){
 
         try{
 
@@ -705,7 +705,7 @@ class PolizaController extends JcrAPIController
             $vehiculoTable = TableRegistry::get("Vehiculo");
             $vehiculoCtrl = new VehiculoController();
             $clientCtrl = new ClientController();
-            $result = array();
+
             $conditions = array();
 
             // condicion de fecha y validacion
@@ -726,55 +726,63 @@ class PolizaController extends JcrAPIController
 
             $polizaFound = $polizaTable->find()->where($conditions)->contain(array('Aseguradora','Ramo'));
 
-            if($polizaFound->count() > 0){
+            if($mode){
 
-                $polizaFound = $polizaFound->toArray();
+                if($polizaFound->count() > 0){
 
-                //tratar el arreglo de polizas
-                foreach($polizaFound as $poliza){
+                    $polizaFound = $polizaFound->toArray();
 
-                    $entityPoliza = $vehiculoTable->newEntity();
+                    $result = array();
 
-                    if($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA){
+                    //tratar el arreglo de polizas
+                    foreach($polizaFound as $poliza){
 
-                        $entityPoliza->poliza_id = $poliza['poliza_id'];
-                        $entityPoliza->numero_poliza = $poliza['numero_poliza'];
-                        $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                        $entityPoliza->agente = $poliza['agente'];
-                        $entityPoliza->prima_total = $poliza['prima_total'];
-                        $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
-                        $entityPoliza->ramo = $poliza['ramo'];
-                        $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
-                        $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                        $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+                        $entityPoliza = $vehiculoTable->newEntity();
 
+                        if($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA){
+
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->ramo = $poliza['ramo'];
+                            $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                        }
+                        else{
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->ramo = $poliza['ramo'];
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+                        }
+
+                        array_push($result,$entityPoliza);
                     }
-                    else{
-                        $entityPoliza->poliza_id = $poliza['poliza_id'];
-                        $entityPoliza->numero_poliza = $poliza['numero_poliza'];
-                        $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                        $entityPoliza->agente = $poliza['agente'];
-                        $entityPoliza->prima_total = $poliza['prima_total'];
-                        $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
-                        $entityPoliza->ramo = $poliza['ramo'];
-                        $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                        $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
-                    }
 
-                    array_push($result,$entityPoliza);
+                    $polizaFound = ReaxiumUtil::arrayCopy($result);
+
                 }
-
-            }else{
-                $result = null;
+                else{
+                    $polizaFound = null;
+                }
             }
 
         }
         catch (\Exception $e){
             Log::info($e->getMessage());
-            $result = null;
+            $polizaFound = null;
         }
 
-        return $result;
+        return $polizaFound;
     }
 
 
