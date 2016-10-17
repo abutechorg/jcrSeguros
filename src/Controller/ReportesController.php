@@ -366,6 +366,50 @@ class ReportesController extends JcrAPIController{
 
 
 
+    public function getSumasAsegurasInfo(){
+
+        Log::info("Obtener informacion siniestralidad");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
+
+
+        if(parent::validJcrJsonHeader($jsonObject)){
+
+            $page = $jsonObject['JcrParameters']['Reports']["page"];
+            $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
+
+            $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+            $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+            $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
+            $ramo_id = !isset($jsonObject['JcrParameters']['Reports']['ramo_id']) ? null : $jsonObject['JcrParameters']['Reports']['ramo_id'];
+            $monto_min = !isset($jsonObject['JcrParameters']['Reports']['monto_min']) ? null :$jsonObject['JcrParameters']['Reports']['monto_min'];
+            $monto_max = !isset($jsonObject['JcrParameters']['Reports']['monto_max']) ? null :$jsonObject['JcrParameters']['Reports']['monto_max'];
+
+
+            if(parent::validJcrJsonHeader($jsonObject)){
+
+                if(isset($start_date) && isset($end_date) && isset($monto_min) && isset($monto_max)){
+
+                }
+                else{
+                    $response = parent::setInvalidJsonMessage($response);
+                }
+            }
+            else{
+                $response = parent::setInvalidJsonMessage($response);
+            }
+        }
+        else{
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
+
+
     public function getRamoSystem($ramo_id){
 
         $ramoTable = TableRegistry::get("Ramo");

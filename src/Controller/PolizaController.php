@@ -786,6 +786,71 @@ class PolizaController extends JcrAPIController
     }
 
 
+    public function getAumentoSA($start_date,$end_date,$monto_min,$monto_max,$ramo_id,$aseguradora_id){
+
+        try{
+            $polizaTable = TableRegistry::get("Poliza");
+            $vehiculoTable = TableRegistry::get("Vehiculo");
+            $vehiculoCtrl = new VehiculoController();
+            $clientCtrl = new ClientController();
+
+
+            $conditions = array();
+
+            // condicion de fecha y validacion
+            if (isset($start_date)) {
+                $startDateCondition = array('Poliza.fecha_emision >=' => $start_date);
+                array_push($conditions, $startDateCondition);
+                if (isset($end_date)) {
+                    $endDateCondition = array('Poliza.fecha_emision <=' => $end_date);
+                    array_push($conditions, $endDateCondition);
+                }
+            }
+
+            //agregar montos de busqueda
+
+            if (isset($monto_min)) {
+                $montoMinCondition = array('cobertura.descripcion_cobertura_id'=>1,'cobertura.monto >=' => $monto_min);
+                array_push($conditions, $montoMinCondition);
+                if (isset($monto_max)) {
+                    $montoMaxCondition = array('cobertura.descripcion_cobertura_id'=>1,'cobertura.monto <=' => $monto_max);
+                    array_push($conditions, $montoMaxCondition);
+                }
+            }
+
+            if(isset($ramo_id)){
+                $ramoIdCondition = array('Poliza.ramo_id'=>$ramo_id);
+                array_push($conditions,$ramoIdCondition);
+            }
+
+
+            $polizaFound = $polizaTable->find('all',array('fields'=>array(
+                'Poliza.poliza_id',
+                'Poliza.numero_poliza',
+                'Poliza.ramo_id',
+                'Poliza.cliente_id_tomador',
+                'Poliza.cliente_id_titular',
+                'Poliza.agente',
+                'Poliza.aseguradora_id',
+                'Poliza.prima_total',
+                'Poliza.fecha_vencimiento',
+                'cobertura.monto'
+            )))
+            ->join(array(
+               'cobertura'=>array('table'=>'poliza_coberturas','type'=>'LEFT','conditions'=>'Poliza.poliza_id = cobertura.poliza_id')
+            ))->where($conditions);
+
+
+        }catch (\Exception $e){
+            Log::info($e->getMessage());
+            $polizaFound = null;
+        }
+
+       return  $polizaFound;
+
+    }
+
+
     public function getAseguradoraByID($aseguradora_id){
 
         $aseguradoraTable = TableRegistry::get("Aseguradora");
