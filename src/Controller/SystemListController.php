@@ -1,189 +1,130 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: Eduardo Luttinger
- * Date: 06/04/2016
- * Time: 07:02 PM
+ * User: VladimirIlich
+ * Date: 28/8/2016
+ * Time: 12:16
  */
 
 namespace App\Controller;
 
-use Cake\Event\Event;
 use Cake\Log\Log;
-use App\Util\ReaxiumApiMessages;
+use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
-use PhpParser\Node\Expr\Cast\Array_;
+use App\Util\ReaxiumApiMessages;
+use App\Util\ReaxiumUtil;
 
-define('REAXIUM_BASE',4);
 
-class SystemListController extends ReaxiumAPIController
-{
+define('SYSTEM_ACTIVE_MENU',1);
+class SystemListController extends JcrAPIController{
+
 
     /**
-     * @api {get} /SystemList/statusList get a list of all status in the system
-     * @apiName statusList
-     * @apiGroup SystemList
+     * @api {post} /SystemList/getMenuJCR Obtener menu para la aplicacion administrativa
+     * @apiName getMenuJCR
+     * @apiGroup System
+     *
+     * @apiParamExample {json} Request-Example:
+     *
+     *  {
+     *      "JcrParameters":{
+     *              "SystemMenu":{
+     *                      "type_user":4
+     *                          }
+     *                        }
+     *                  }
+     *
+     *
      *
      * @apiSuccessExample Success-Response:
      *     HTTP/1.1 200 OK
+     *     {
+     *      "JcrResponse": {
+     *                  "code": 0,
+     *                  "message": "SUCCESSFUL REQUEST",
+     *                  "object": [
+     *                              {
+     *                              "usuario_id": 1,
+     *                              "nombre": "Yajaira",
+     *                              "apellido": "Vera",
+     *                              "documento_id": "1573934",
+     *                              "fecha_nacimiento": "21/03/1984",
+     *                              "correo": "yaja.vera21@gmail.com",
+     *                              "direccion": "Los Teques",
+     *                              "tipo_usuario": 2,
+     *                              "clave": ""
+     *                              }
+     *                          ],
+     *                          "totalRecords": 2,
+     *                          "totalPages": 1
+     *                          }
+     *                      }
      *
-            {
-                "ReaxiumResponse": {
-                    "code": "",
-                    "message": "",
-                    "object": [
-                        {
-                        "status_id": 1,
-                        "status_name": "ACTIVE"
-                        },
-                        {
-                        "status_id": 3,
-                        "status_name": "DELETED"
-                        },
-                        {
-                        "status_id": 2,
-                        "status_name": "INACTIVE"
-                        }
-                        ]
-                    }
-            }
-     *
+     * @apiErrorExample Error-Response: User already exist
+     *  {
+     *      "ReaxiumResponse": {
+     *          "code": 101,
+     *          "message": "User id number already exist in the system",
+     *          "object": []
+     *          }
+     *      }
      *
      */
-    public function statusList()
-    {
-        Log::info("Create a new Device access service has been invoked");
+    public function getMenuJCR(){
+
+        Log::info("Obtener menu de la aplicacion");
         parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
-            $response['ReaxiumResponse']['object'] = $this->getStatusList();
-        $this->response->body(json_encode($response));
-    }
-
-    /**
-     * @return $this|array status's list
-     */
-    private function getStatusList(){
-        $statusTable = TableRegistry::get("Status");
-        $statusList = $statusTable->find()->order(array('status_name'));
-        if ($statusList->count() > 0) {
-            $statusList = $statusList->toArray();
-        }
-        return $statusList;
-    }
-
-
-    /**
-     * @api {get} /SystemList/accessTypeList get a list of all access types in the system
-     * @apiName accessTypeList
-     * @apiGroup SystemList
-     *
-     * @apiSuccessExample Success-Response:
-     *     HTTP/1.1 200 OK
-     *
-        {
-            "ReaxiumResponse": {
-                "code": "",
-                "message": "",
-                "object": [
-                    {
-                    "access_type_id": 2,
-                    "access_type_name": "Biometric",
-                    "status_id": 2
-                    },
-                    {
-                    "access_type_id": 3,
-                    "access_type_name": "RFID",
-                    "status_id": 3
-                    },
-                    {
-                    "access_type_id": 1,
-                    "access_type_name": "User Login and Password",
-                    "status_id": 1
-                    }
-                    ]
-            }
-        }
-     *
-     *
-     */
-    public function accessTypeList()
-    {
-        Log::info("Looking for the access type list ");
-        parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
-        $response['ReaxiumResponse']['object'] = $this->getAccessTypeList();
-        $this->response->body(json_encode($response));
-    }
-
-    /**
-     * @return $this|array status's list
-     */
-    private function getAccessTypeList(){
-        $accessTypeTable = TableRegistry::get("AccessType");
-        $accessTypeList = $accessTypeTable->find()->order(array('access_type_name'));
-        if ($accessTypeList->count() > 0) {
-            $accessTypeList = $accessTypeList->toArray();
-        }
-        return $accessTypeList;
-    }
-
-
-    public function getMenu(){
-
-        Log::info("Get Menu for rol user");
-
-        parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
+        $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
 
-        if(parent::validReaxiumJsonHeader($jsonObject)){
+
+        if(parent::validJcrJsonHeader($jsonObject)){
 
             try{
-                $type_user_id = !isset($jsonObject['ReaxiumParameters']['ReaxiumSystem']['type_user_id']) ? null : $jsonObject['ReaxiumParameters']['ReaxiumSystem']['type_user_id'];
-                $business_master_id = !isset($jsonObject['ReaxiumParameters']['ReaxiumSystem']['business_master_id']) ? null : $jsonObject['ReaxiumParameters']['ReaxiumSystem']['business_master_id'];
+                $tipo_usuario = !isset($jsonObject['JcrParameters']['SystemMenu']['type_user']) ? null : $jsonObject['JcrParameters']['SystemMenu']['type_user'];
 
-                if(isset($type_user_id) && isset($business_master_id)){
+                 if(isset($tipo_usuario)){
 
-                    $menuOptionTable = TableRegistry::get('MenuApplication');
-                    $menuOptionFound =  $menuOptionTable->find()
-                        ->where(array('business_master_id'=>$business_master_id))
-                        ->contain(array('SubMenuApplication'))
-                        ->order(array('name_menu desc'));
+                     $menuOptionTable = TableRegistry::get('MenuAplicacion');
+                     $menuOptionFound = $menuOptionTable->find()
+                         ->where(array('status_id'=>1))
+                         ->contain(array('SubMenuAplicacion'))->order(array('name_menu desc'));
 
-                    if($menuOptionFound->count()>0){
-                        $menuOptionFound = $menuOptionFound->toArray();
+                     Log::info(json_encode($menuOptionFound));
 
-                        $arrayMenuFinal = $this->getActiveMenu($type_user_id,$menuOptionFound);
+                     if($menuOptionFound->count() > 0){
 
-                        Log::info($arrayMenuFinal);
+                         $menuOptionFound = $menuOptionFound->toArray();
 
-                        if(!empty($arrayMenuFinal)){
-                            $response = parent::setSuccessfulResponse($response);
-                            $response['ReaxiumResponse']['object'] = $arrayMenuFinal;
-                        }else{
-                            $response['ReaxiumResponse']['code'] = '1';
-                            $response['ReaxiumResponse']['message'] = 'Menu not active for this user';
-                            $response['ReaxiumResponse']['object'] = [];
-                        }
+                         $arrayMenuFinal = $this->getActiveMenu($tipo_usuario,$menuOptionFound);
 
-                    }else{
-                        $response['ReaxiumResponse']['code'] = '2';
-                        $response['ReaxiumResponse']['message'] = 'No data  found';
-                        $response['ReaxiumResponse']['object'] = [];
-                    }
+                         Log::info($arrayMenuFinal);
 
-                }else{
-                    $response = parent::seInvalidParametersMessage($response);
-                }
+                         if(!empty($arrayMenuFinal)){
+                             $response = parent::setSuccessfulResponse($response);
+                             $response['JcrResponse']['object'] = $arrayMenuFinal;
+                         }else{
+                             $response['JcrResponse']['code'] = '1';
+                             $response['JcrResponse']['message'] = 'El menu no esta activo para este tipo de usuario';
+                             $response['JcrResponse']['object'] = [];
+                         }
+                     }
+
+                 }else{
+                     $response = parent::setInvalidJsonMessage($response);
+                 }
+
             }
             catch (\Exception $e){
-
-                Log::info("Error get options menu " . $e->getMessage());
-                $response = $this->setInternalServiceError($response);
+                Log::info("Error borrando usuario del sistema");
+                Log::info($e->getMessage());
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = 'Error del sistema';
             }
-
-        }else{
-            $response = parent::seInvalidParametersMessage($response);
+        }
+        else{
+            $response = parent::setInvalidJsonMessage($response);
         }
 
         Log::info("Responde Object: " . json_encode($response));
@@ -191,17 +132,24 @@ class SystemListController extends ReaxiumAPIController
     }
 
 
+    /**
+     * @param $id_user_type
+     * @param $arrayMenu
+     * @return array
+     */
+
     private function getActiveMenu($id_user_type,$arrayMenu){
 
         $arrayResponse = [];
 
         try{
 
-            $accessOptions = TableRegistry::get('AccessOptionsRol');
+            $accessOptions = TableRegistry::get('AccesoOpcionesRol');
 
-            $accessOptionsFound = $accessOptions->findByUserTypeId($id_user_type);
+            $accessOptionsFound = $accessOptions->findByTipoUsuarioId($id_user_type);
 
-            if($accessOptionsFound->count()>0){
+            if($accessOptionsFound->count() > 0){
+
 
                 $accessOptionsFound =  $accessOptionsFound->toArray();
 
@@ -211,7 +159,10 @@ class SystemListController extends ReaxiumAPIController
 
                         if($menu['menu_id'] == $access['menu_id']){
 
-                            if($access['active_menu'] == ReaxiumApiMessages::$ACTIVE_MENU_FOR_TYPE_USER){
+                            Log::info("esta entrando aqui".$access['active_menu'] );
+
+                            if($access['active_menu'] == SYSTEM_ACTIVE_MENU){
+
                                 array_push($arrayResponse,$menu);
                             }
                         }
@@ -231,45 +182,106 @@ class SystemListController extends ReaxiumAPIController
     }
 
 
-    public function updateAccessMenuByUserRol(){
+    /**
+     * @api {post} /SystemList/accessUserLogin accesos del usuario al sitema
+     * @apiName accessUserLogin
+     * @apiGroup System
+     *
+     * @apiParamExample {json} Request-Example:
+     *
+     *  {
+     *      "JcrParameters":{
+     *              "SystemAccess":{
+     *                  "user_name":"vladimir.fernandez21@gmail.com",
+     *                  "pass_user":12345435
+     *                  }
+     *              }
+     *          }
+     *
+     *
+     *
+     * @apiSuccessExample Success-Response:
+     *     HTTP/1.1 200 OK
+     *     {
+     *      "JcrResponse": {
+     *                  "code": 0,
+     *                  "message": "SUCCESSFUL REQUEST",
+     *                  "object": [
+     *                              {
+     *                              "usuario_id": 1,
+     *                              "nombre": "Yajaira",
+     *                              "apellido": "Vera",
+     *                              "documento_id": "1573934",
+     *                              "fecha_nacimiento": "21/03/1984",
+     *                              "correo": "yaja.vera21@gmail.com",
+     *                              "direccion": "Los Teques",
+     *                              "tipo_usuario": 2,
+     *                              "clave": ""
+     *                              }
+     *                          ],
+     *                          "totalRecords": 2,
+     *                          "totalPages": 1
+     *                          }
+     *                      }
+     *
+     * @apiErrorExample Error-Response: User already exist
+     *  {
+     *      "ReaxiumResponse": {
+     *          "code": 101,
+     *          "message": "User id number already exist in the systems",
+     *          "object": []
+     *          }
+     *      }
+     *
+     */
+    public function accessUserLogin(){
 
-        Log::info("update access menu for user");
-
+        Log::info("Login a la aplicacion administrativa");
         parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
+        $response = parent::getDefaultJcrMessage();
         $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
 
 
-        if(parent::validReaxiumJsonHeader($jsonObject)){
+        if(parent::validJcrJsonHeader($jsonObject)){
 
             try{
 
-                $objAccess = !isset($jsonObject['ReaxiumParameters']['ReaxiumSystem']['object'])? null : $jsonObject['ReaxiumParameters']['ReaxiumSystem']['object'];
+                $userName = !isset($jsonObject['JcrParameters']['SystemAccess']['user_name']) ? null :  $jsonObject['JcrParameters']['SystemAccess']['user_name'];
+                $passUser = !isset($jsonObject['JcrParameters']['SystemAccess']['pass_user']) ? null : $jsonObject['JcrParameters']['SystemAccess']['pass_user'];
 
-                if(isset($objAccess)){
+                if(isset($userName) && isset($passUser)){
 
-                    $accessOptionsTable = TableRegistry::get("AccessOptionsRol");
+                    $userTable = TableRegistry::get("Usuarios");
+                    $userFound = $userTable->find()->where(array('correo'=>$userName,'clave'=>$passUser,'tipo_usuario_id in'=>array(1,2,3,4)));
 
-                    foreach($objAccess as $access){
-                        $accessOptionsFound = $accessOptionsTable->updateAll(array('active_menu'=>$access['active_menu']),array('user_type_id'=>$access['type_user_id'],'menu_id'=>$access['menu_id']));
+                    Log::info($userFound);
+
+                    if($userFound->count() > 0){
+                        $arrayMenuFinal = $userFound->toArray();
+                        $response = parent::setSuccessfulResponse($response);
+                        $response['JcrResponse']['object'] = $arrayMenuFinal;
+
+                    }else{
+                        $response['JcrResponse']['code'] = '1';
+                        $response['JcrResponse']['message'] = 'UserName o Password Invalidos';
+                        $response['JcrResponse']['object'] = [];
                     }
-
-                    Log::info(json_encode($accessOptionsFound));
-
-                    $response = parent::setSuccessfulResponse($response);
-
-                }else{
-                    $response = parent::seInvalidParametersMessage($response);
+                }
+                else{
+                    $response = parent::setInvalidJsonMessage($response);
                 }
 
             }
             catch (\Exception $e){
-                Log::info("Error get options menu " . $e->getMessage());
-                $response = $this->setInternalServiceError($response);
+                Log::info("Error borrando usuario del sistema");
+                Log::info($e->getMessage());
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = 'Error del sistema';
             }
-
-        }else{
-            $response = parent::seInvalidParametersMessage($response);
+        }
+        else{
+            $response = parent::setInvalidJsonMessage($response);
         }
 
         Log::info("Responde Object: " . json_encode($response));
@@ -277,41 +289,86 @@ class SystemListController extends ReaxiumAPIController
     }
 
 
-    public function getAccessActiveMenu(){
+    /**
+     * Servicio para obtener todos los accesos por usuario
+     */
+    public function getAccessActiveMenu()
+    {
 
         Log::info("Looking for the access type list menu");
         parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
+        $response = parent::getDefaultJcrMessage();
 
         $response = parent::setSuccessfulResponse($response);
-        $response['ReaxiumResponse']['object'] = $this->getDataAccessOptionsMenu();
+        $response['JcrResponse']['object'] = $this->getDataAccessOptionsMenu();
         $this->response->body(json_encode($response));
 
     }
 
-    private function getDataAccessOptionsMenu(){
 
-        $accessOptions = TableRegistry::get('AccessOptionsRol');
-        $accessOptionsFound = $accessOptions->find()->order(array('user_type_id'));
-        if($accessOptionsFound->count()>0){
-            $accessOptionsFound =  $accessOptionsFound->toArray();
+
+    /**
+     * @return $this|array
+     */
+
+    private function getDataAccessOptionsMenu()
+    {
+
+        $accessOptions = TableRegistry::get('AccesoOpcionesRol');
+        $accessOptionsFound = $accessOptions->find()->order(array('tipo_usuario_id'));
+        if ($accessOptionsFound->count() > 0) {
+            $accessOptionsFound = $accessOptionsFound->toArray();
         }
 
         return $accessOptionsFound;
     }
 
 
-    public function getDepartamentsSystem(){
+    /**
+     * Servicio para actualizar permisos en menu
+     */
+    public function updateAccessMenuByUserRol()
+    {
 
-        Log::info("Get Departament System");
+        Log::info("update access menu for user");
+
         parent::setResultAsAJson();
-        $response = parent::getDefaultReaxiumMessage();
-        $response['ReaxiumResponse']['object'] = $this->getAccessTypeList();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+
+            try {
+
+                $objAccess = !isset($jsonObject['JcrParameters']['JcrSystem']['object']) ? null : $jsonObject['JcrParameters']['JcrSystem']['object'];
+
+                if (isset($objAccess)) {
+
+                    $accessOptionsTable = TableRegistry::get("AccesoOpcionesRol");
+
+                    foreach ($objAccess as $access) {
+                        $accessOptionsFound = $accessOptionsTable->updateAll(array('active_menu' => $access['active_menu']), array('tipo_usuario_id' => $access['tipo_usuario_id'], 'menu_id' => $access['menu_id']));
+                    }
+
+                    Log::info(json_encode($accessOptionsFound));
+
+                    $response = parent::setSuccessfulResponse($response);
+
+                } else {
+                    $response = parent::seInvalidParametersMessage($response);
+                }
+
+            } catch (\Exception $e) {
+                Log::info("Error get options menu " . $e->getMessage());
+                $response = $this->setInternalServiceError($response);
+            }
+
+        } else {
+            $response = parent::seInvalidParametersMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
-    }
-
-
-    private function getDespartaments(){
-
     }
 }

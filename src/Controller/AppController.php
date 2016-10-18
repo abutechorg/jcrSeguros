@@ -18,7 +18,7 @@ use Cake\Controller\Controller;
 use Cake\Event\Event;
 
 /**
- * Application Controller
+ * AApplication Controller
  *
  * Add your application-wide methods in the class below, your controllers
  * will inherit them.

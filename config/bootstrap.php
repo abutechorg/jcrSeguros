@@ -111,14 +111,14 @@ Configure::write('CakePdf', [
             'encoding'=> 'UTF-8',
             'footer-center'=>'[Page]',
             'margin-bottom'=>'20mm',
-            'margin-left'=>'10mm',
+            'margin-left'=>'5mm',
             'margin-right'=>'25mm',
             'margin-top'=>'25mm',
             'javascript-delay'=>1000
 
         ],
     ],
-    'orientation' => 'portrait',
+    'orientation' => 'landscape',
     'download' => false
 ]);
 
