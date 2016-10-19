@@ -36,6 +36,7 @@ class PolizaController extends JcrAPIController
                     $clienteTable = TableRegistry::get("Clientes");
                     $vehiculoTable = TableRegistry::get("Vehiculo");
                     $relationPolizaVehiculo = TableRegistry::get("PolizaVehiculo");
+                    $financiamientoTable = TableRegistry::get("Financiamientos");
 
                     $conn = $polizaTable->connection();
                     //bloque transaccional de salvado de poliza
@@ -45,9 +46,10 @@ class PolizaController extends JcrAPIController
                         $polizaCoberturaTable,
                         $clienteTable,
                         $vehiculoTable,
-                        $relationPolizaVehiculo
+                        $relationPolizaVehiculo,
+                        $financiamientoTable
                     ) {
-                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo, $polizaRequest);
+                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo, $polizaRequest,$financiamientoTable);
                     });
 
                     $response = parent::setSuccessfulSave($response);
@@ -78,7 +80,7 @@ class PolizaController extends JcrAPIController
      * @param $polizaJson
      * @throws Exception
      */
-    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo,$polizaJson)
+    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo,$polizaJson,$financiamientoTable)
     {
         $clienteController = new ClientController();
         $polizaCreationResult = null;
@@ -93,12 +95,28 @@ class PolizaController extends JcrAPIController
         }
 
 
+
         if ($polizaCreationResult) {
 
             $poliza_id = $polizaCreationResult['poliza_id'];
             $ramoPoliza_id = $polizaCreationResult['ramo_id'];
 
-            $polizaCoberturaResult = $this->agregarCoberturaALaPoliza($polizaCoberturaTable, $polizaCreationResult, $polizaJson);
+
+            // valido si hay financiamiento
+
+            if($polizaJson['es_financiado']){
+
+                $polizaCoberturaResult = $this->createFinanciamiento($financiamientoTable,$polizaJson['financiamento'],$poliza_id);
+
+                if(!isset($polizaCoberturaResult)){
+                    Log::info($polizaCoberturaResult);
+                    throw new Exception("Fallo la creacion del financiamiento");
+                }
+            }
+
+
+            $polizaCoberturaResult = $this->agregarCoberturaALaPoliza($polizaCoberturaTable, $polizaCreationResult,$polizaJson);
+
 
             if (!$polizaCoberturaResult) {
                 Log::info($polizaCoberturaResult);
@@ -449,13 +467,28 @@ class PolizaController extends JcrAPIController
                         $clienteController = new ClientController();
 
                         $polizaFound = $polizaFound->toArray();
+
+                        //verifico si existe financiamiento
+                        $financiamiento = $this->getFinanciamientoByPoliza($poliza_id);
+
+                        if(isset($financiamiento)){
+                            $polizaFound[0]['es_financiado'] = true;
+                            $polizaFound[0]['financiamento'] = $financiamiento[0];
+                        }
+                        else{
+                            $polizaFound[0]['es_financiado'] = false;
+                            $polizaFound[0]['financiamento'] = [];
+                        }
+
                         $polizaFound[0]['asegurado'] = $clienteController->getClientById($polizaFound[0]['cliente_id_titular']);
                         $polizaFound[0]['tomador'] = $clienteController->getClientById($polizaFound[0]['cliente_id_tomador']);
+
                         if ($polizaFound[0]['cliente_id_tomador'] == $polizaFound[0]['cliente_id_titular']) {
                             $polizaFound[0]['asegurado']['es_tomador'] = true;
                         }else{
                             $polizaFound[0]['asegurado']['es_tomador'] = false;
                         }
+
 
                         $polizaFound[0]['ramo']['coberturas'] = $this->getCoberturasDeLaPoliza($poliza_id);
 
@@ -850,6 +883,55 @@ class PolizaController extends JcrAPIController
 
     }
 
+
+    public function createFinanciamiento($financiamientoTable,$jsonFinanciamiento,$poliza_id){
+
+        $result = null;
+
+        try{
+
+            Log::info("Objeto Financiamiento: ".json_encode($jsonFinanciamiento));
+            Log::info("Poliza: ".$poliza_id);
+
+            $entityFinanciamiento = $financiamientoTable->newEntity();
+
+            if(isset($jsonFinanciamiento['financiamiento_id'])){
+                $entityFinanciamiento->financiamiento_id = $jsonFinanciamiento['financiamiento_id'];
+            }
+
+            $entityFinanciamiento->poliza_id = $poliza_id;
+            $entityFinanciamiento->numero_cuotas = $jsonFinanciamiento['numero_cuotas'];
+            $entityFinanciamiento->monto_inicial = $jsonFinanciamiento['monto_inicial'];
+            $entityFinanciamiento->numero_financiamiento = $jsonFinanciamiento['numero_financiamiento'];
+            $entityFinanciamiento->financiamientos_desde = ReaxiumUtil::getDate($jsonFinanciamiento['financiamientos_desde']);
+            $entityFinanciamiento->financiamientos_hasta = ReaxiumUtil::getDate($jsonFinanciamiento['financiamientos_hasta']);
+
+            Log::info("Objeto Financiamiento: "+json_encode($entityFinanciamiento));
+
+            $result =  $financiamientoTable->save($entityFinanciamiento);
+        }
+        catch (\Exception $e){
+            Log::info($e);
+            $result = null;
+        }
+
+        return $result;
+    }
+
+
+    public function getFinanciamientoByPoliza($poliza_id){
+
+        $funcionamientoTable = TableRegistry::get("Financiamientos");
+        $result = $funcionamientoTable->findByPolizaId($poliza_id);
+
+        if($result->count()>0){
+            $result = $result->toArray();
+        }else{
+            $result = null;
+        }
+
+        return $result;
+    }
 
     public function getAseguradoraByID($aseguradora_id){
 
