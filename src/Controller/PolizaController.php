@@ -213,6 +213,7 @@ class PolizaController extends JcrAPIController
         $polizaEntity->prima_total = $polizaJson['prima_total'];
         $polizaEntity->fecha_emision = $polizaJson['fecha_emision'];
         $polizaEntity->fecha_vencimiento = $polizaJson['fecha_vencimiento'];
+        $polizaEntity->observacion = $polizaJson['observacion'];
         $polizaResult = $polizaTable->save($polizaEntity);
         return $polizaResult;
     }
