@@ -12,7 +12,7 @@ use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
 
-
+//define('PATH_DIRECTORY', '/var/www/html/jcr_reports');
 define('PATH_DIRECTORY', 'C:/xampp/htdocs/JcrReports');
 define('NAME_FILE', 'JcrReports');
 define('TEMPLATE_RENOVACIONES', 'reporte_jrcseguros_renovaciones');
@@ -20,6 +20,7 @@ define('TEMPLATE_SINIESTRALIDAD','reporte_jrcseguros_siniestralidad');
 define('TEMPLATE_SA','reporte_jrcseguros_aumento_sa');
 define('TEMPLATE_VENTAS_CRUZADAS','reporte_jrcseguros_ventas_cruzadas');
 define('ENVIRONMENT', 'http://localhost:8080/JcrReports');
+//define('ENVIRONMENT', 'http://54.213.162.246/jcr_reports');
 define('SINIESTRO_PERSONA',1);
 define('SINIESTRO_VEHICULO',2);
 
