@@ -33,8 +33,8 @@ class SiniestroController extends JcrAPIController{
         {
             try
             {
-                if (isset($jsonObject['JcrParameters']['SiniestroSystem']))
-                {
+                if (isset($jsonObject['JcrParameters']['SiniestroSystem'])){
+
                     $result = $this->createASiniestro($jsonObject['JcrParameters']['SiniestroSystem']);
 
                     if ($result){
@@ -46,8 +46,7 @@ class SiniestroController extends JcrAPIController{
                         $response['JcrResponse']['message'] = 'No se pudoo crear el siniestro en sistema';
                     }
                 }
-                else
-                {
+                else{
                     $response = parent::seInvalidParametersMessage($response);
                 }
             }
@@ -96,6 +95,7 @@ class SiniestroController extends JcrAPIController{
                 $siniestroEntity->monto_siniestro = $siniestroJSON['siniestro']['monto_siniestro'];
                 $siniestroEntity->tipo_siniestro_id = $siniestroJSON['siniestro']['tipo_siniestro_id'];
                 $siniestroEntity->observaciones_ordenes = $siniestroJSON['siniestro']['observaciones_ordenes'];
+                $siniestroEntity->fecha_ocurrencia = ReaxiumUtil::getDate($siniestroJSON['siniestro']['fecha_ocurrencia']);
 
 
                 // guardando el sinestro en tabla siniestro
@@ -114,7 +114,6 @@ class SiniestroController extends JcrAPIController{
                         }
 
                         $siniestroAutoEntity->siniestro_id = $siniestro['siniestro_id'];
-                        $siniestroAutoEntity->fecha_ocurrencia = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_ocurrencia']);
                         $siniestroAutoEntity->fecha_declaracion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_declaracion']);
                         $siniestroAutoEntity->fecha_inspeccion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_inspeccion']);
                         $siniestroAutoEntity->taller_propuesto = $siniestroJSON['auto']['taller_propuesto'];
@@ -125,28 +124,34 @@ class SiniestroController extends JcrAPIController{
 
                         if($result){
 
-                            // si se guarda los datos en la tabla Repuestos
-                            $repuestoAutoTable =  TableRegistry::get("Repuestos");
+                            if($siniestroJSON['siniestro']['hay_repuestos']){
 
-                            $listRepuesto = $siniestroJSON['auto']['repuestos'];
+                                // si se guarda los datos en la tabla Repuestos
+                                $repuestoAutoTable =  TableRegistry::get("Repuestos");
 
-                            $repuestoEntity = null;
+                                $listRepuesto = $siniestroJSON['auto']['repuestos'];
+
+                                $repuestoEntity = null;
 
 
-                            foreach($listRepuesto as $repuesto){
+                                foreach($listRepuesto as $repuesto){
 
-                                $repuestoEntity = $repuestoAutoTable->newEntity();
+                                    $repuestoEntity = $repuestoAutoTable->newEntity();
 
-                                if(isset($repuesto['repuesto_id'])){
-                                    $repuestoEntity->repuesto_id = $repuesto['repuesto_id'];
+                                    if(isset($repuesto['repuesto_id'])){
+                                        $repuestoEntity->repuesto_id = $repuesto['repuesto_id'];
+                                    }
+
+                                    $repuestoEntity->fecha_llegada = ReaxiumUtil::getDate($repuesto['fecha_llegada']);
+                                    $repuestoEntity->descripcion = $repuesto['descripcion'];
+                                    $repuestoEntity->observaciones = $repuesto['observaciones'];
+                                    $repuestoEntity->siniestro_automovil_id = $result['siniestro_automovil_id'];
+                                    $repuestoAutoTable->save($repuestoEntity);
+
                                 }
 
-                                $repuestoEntity->fecha_llegada = ReaxiumUtil::getDate($repuesto['fecha_llegada']);
-                                $repuestoEntity->descripcion = $repuesto['descripcion'];
-                                $repuestoEntity->observaciones = $repuesto['observaciones'];
-                                $repuestoEntity->siniestro_automovil_id = $result['siniestro_automovil_id'];
-                                $repuestoAutoTable->save($repuestoEntity);
-
+                            }else{
+                                Log::info("Se guardo el siniestor con exito");
                             }
 
                         }
@@ -397,13 +402,13 @@ class SiniestroController extends JcrAPIController{
                 'monto_siniestro',
                 'monto_siniestro',
                 'tipo_siniestro_id',
+                'fecha_ocurrencia',
                 'observaciones_ordenes',
                 'poliza.numero_poliza',
                 'poliza.prima_total',
                 'poliza.aseguradora_id',
                 'poliza.numero_recibo',
                 'siniestroAuto.siniestro_automovil_id',
-                'siniestroAuto.fecha_ocurrencia',
                 'siniestroAuto.taller_propuesto',
                 'siniestroAuto.fecha_declaracion',
                 'siniestroAuto.fecha_inspeccion',
@@ -418,7 +423,18 @@ class SiniestroController extends JcrAPIController{
 
             if($siniestroFound->count() > 0){
                 $siniestroFound = $siniestroFound->toArray();
-                $siniestroFound[0]['repuestos'] = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
+                $repuestos = $this->getRepuestosAuto($siniestroFound[0]['siniestroAuto']['siniestro_automovil_id']);
+
+
+                if(isset($repuestos)){
+                    $siniestroFound[0]['repuestos'] = $repuestos;
+                    $siniestroFound[0]['hay_repuestos'] = true;
+                }
+                else{
+                    $siniestroFound[0]['repuestos'] =[];
+                    $siniestroFound[0]['hay_repuestos'] = false;
+                }
+
             }else{
                 $siniestroFound = null;
             }
@@ -522,69 +538,128 @@ class SiniestroController extends JcrAPIController{
     }
 
 
-    public function getSiniestralidadInfo($start_date,$end_date,$aseguradora_id,$numero_poliza,$ramo,$mode){
+    public function getSiniestralidadInfo($start_date,$end_date,$aseguradora_id,$numero_ci_or_placa,$ramo,$mode,$type_search){
 
             try{
 
-                $polizaTable = TableRegistry::get("Poliza");
+                $polizaTable = TableRegistry::get("Siniestro");
                 $conditions = array();
 
                 // condicion de fecha y validacion
                 if (isset($start_date)) {
-                    $startDateCondition = array('Poliza.fecha_vencimiento >=' => $start_date);
+                    $startDateCondition = array('Siniestro.fecha_ocurrencia >=' => $start_date);
                     array_push($conditions, $startDateCondition);
                     if (isset($end_date)) {
-                        $endDateCondition = array('Poliza.fecha_vencimiento <=' => $end_date);
+                        $endDateCondition = array('Siniestro.fecha_ocurrencia <=' => $end_date);
                         array_push($conditions, $endDateCondition);
                     }
                 }
 
                 //condicion aseguradora
                 if(isset($aseguradora_id)){
-                    $aseguradoraCondition = array('Poliza.aseguradora_id'=>$aseguradora_id);
+                    $aseguradoraCondition = array('poliza.aseguradora_id'=>$aseguradora_id);
                     array_push($conditions,$aseguradoraCondition);
                 }
 
-                //condicion numero de poliza
-                if(isset($numero_poliza) && $numero_poliza != ""){
-                    $numeroPolizaCondition = array('Poliza.numero_poliza'=>$numero_poliza);
-                    array_push($conditions,$numeroPolizaCondition);
-                }
 
                 //ramo
                 //condicion numero de poliza
                 if(isset($ramo)){
-
-                    if($ramo == "P"){
-                        $ramoCondition = array('Poliza.ramo_id in'=>array(1,2));
+                    if($ramo == "A"){
+                        $ramoCondition = array('poliza.ramo_id in'=>array(3,4));
                     }else{
-                        $ramoCondition = array('Poliza.ramo_id in'=>array(3,4));
+                        $ramoCondition = array('poliza.ramo_id not in'=>array(3,4));
                     }
 
                     array_push($conditions,$ramoCondition);
                 }
 
 
-                $polizaFound = $polizaTable->find('all',array('fields'=>array(
-                    'Poliza.poliza_id',
-                    'Poliza.numero_poliza',
-                    'Poliza.ramo_id',
-                    'Poliza.cliente_id_tomador',
-                    'Poliza.cliente_id_titular',
-                    'Poliza.agente',
-                    'Poliza.aseguradora_id',
-                    'Poliza.prima_total',
-                    'Poliza.fecha_vencimiento',
-                    'siniestro.siniestro_id',
-                    'siniestro.numero_siniestro',
-                    'siniestro.monto_siniestro',
-                    'siniestro.tipo_siniestro_id'
-                )))
-                ->join(array(
-                    'siniestro'=>array('table'=>'siniestro','type'=>'INNER','conditions'=>'Poliza.poliza_id = siniestro.poliza_id')
-                ))
-                ->where($conditions);
+                if($numero_ci_or_placa != ''){
 
+                    switch($type_search){
+
+                        case 1:
+
+                            $whereCondition = array(array('OR' => array(
+                                array('asegurado.documento_id_cliente LIKE' => '%' . $numero_ci_or_placa . '%'))));
+
+                            $polizaFound = $polizaTable->find('all',array('fields'=>array(
+                                'poliza.poliza_id',
+                                'poliza.numero_poliza',
+                                'poliza.ramo_id',
+                                'poliza.cliente_id_tomador',
+                                'poliza.cliente_id_titular',
+                                'poliza.agente',
+                                'poliza.aseguradora_id',
+                                'poliza.prima_total',
+                                'poliza.fecha_vencimiento',
+                                'Siniestro.siniestro_id',
+                                'Siniestro.numero_siniestro',
+                                'Siniestro.monto_siniestro',
+                                'Siniestro.tipo_siniestro_id'
+                            )))
+                                ->join(array(
+                                    'poliza'=>array('table'=>'poliza','type'=>'LEFT','conditions'=>'Siniestro.poliza_id = poliza.poliza_id'),
+                                    'asegurado'=>array('table'=>'clientes','type'=>'LEFT','conditions'=>'poliza.cliente_id_titular = asegurado.cliente_id')))
+                                ->where($whereCondition)
+                                ->andWhere($conditions);
+
+                            break;
+
+                        case 2:
+
+                            $whereCondition = array(array('OR' => array(
+                                array('vehiculo.vehiculo_placa LIKE' => '%' . $numero_ci_or_placa . '%'))));
+
+                            $polizaFound = $polizaTable->find('all',array('fields'=>array(
+                                'poliza.poliza_id',
+                                'poliza.numero_poliza',
+                                'poliza.ramo_id',
+                                'poliza.cliente_id_tomador',
+                                'poliza.cliente_id_titular',
+                                'poliza.agente',
+                                'poliza.aseguradora_id',
+                                'poliza.prima_total',
+                                'poliza.fecha_vencimiento',
+                                'Siniestro.siniestro_id',
+                                'Siniestro.numero_siniestro',
+                                'Siniestro.monto_siniestro',
+                                'Siniestro.tipo_siniestro_id'
+                            )))
+                                ->join(array(
+                                    'poliza'=>array('table'=>'poliza','type'=>'LEFT','conditions'=>'Siniestro.poliza_id = poliza.poliza_id'),
+                                    'polizaVehiculo' => array('table'=>'poliza_vehiculo','type'=>'LEFT','conditions'=>'poliza.poliza_id = polizaVehiculo.poliza_id'),
+                                    'vehiculo' => array('table'=>'vehiculo','type'=>'LEFT','conditions'=>'polizaVehiculo.vehiculo_id = vehiculo.vehiculo_id')))
+                                ->where($whereCondition)
+                                ->andWhere($conditions);
+                             break;
+
+                    }
+
+                }else{
+
+                    $polizaFound = $polizaTable->find('all',array('fields'=>array(
+                        'poliza.poliza_id',
+                        'poliza.numero_poliza',
+                        'poliza.ramo_id',
+                        'poliza.cliente_id_tomador',
+                        'poliza.cliente_id_titular',
+                        'poliza.agente',
+                        'poliza.aseguradora_id',
+                        'poliza.prima_total',
+                        'poliza.fecha_vencimiento',
+                        'Siniestro.siniestro_id',
+                        'Siniestro.numero_siniestro',
+                        'Siniestro.monto_siniestro',
+                        'Siniestro.tipo_siniestro_id'
+                    )))
+                        ->join(array(
+                            'poliza'=>array('table'=>'poliza','type'=>'INNER','conditions'=>'Siniestro.poliza_id = poliza.poliza_id')
+                        ))
+                        ->where($conditions);
+
+                }
 
                 if($mode){
 
@@ -602,25 +677,24 @@ class SiniestroController extends JcrAPIController{
                         foreach($polizasFound as $poliza){
 
                             $entityPoliza = $polizaTable->newEntity();
-                            $entityPoliza->poliza_id = $poliza['poliza_id'];
-                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
-                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                            $entityPoliza->agente = $poliza['agente'];
-                            $entityPoliza->prima_total = $poliza['prima_total'];
-                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
-                            $entityPoliza->ramo = $this->getRamoSystem($poliza['ramo_id']);
-                            $entityPoliza->coberturas = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                            $entityPoliza->tipo_siniestro = $poliza['siniestro']['tipo_siniestro_id'];
-                            $entityPoliza->numero_siniestro = $poliza['siniestro']['numero_siniestro'];
-                            $entityPoliza->monto_siniestro = $poliza['siniestro']['monto_siniestro'];
+                            $entityPoliza->poliza_id = $poliza['poliza']['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['poliza']['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['poliza']['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['poliza']['agente'];
+                            $entityPoliza->prima_total = $poliza['poliza']['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['poliza']['fecha_vencimiento'];
+                            $entityPoliza->ramo = $this->getRamoSystem($poliza['poliza']['ramo_id']);
+                            $entityPoliza->coberturas = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza']['poliza_id']);
+                            $entityPoliza->tipo_siniestro = $poliza['tipo_siniestro_id'];
+                            $entityPoliza->numero_siniestro = $poliza['numero_siniestro'];
+                            $entityPoliza->monto_siniestro = $poliza['monto_siniestro'];
 
-                            if($poliza['siniestro']['tipo_siniestro_id'] == SINIESTRO_VEHICULO){
-                                $entityPoliza->vehiculo = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                            if($poliza['tipo_siniestro_id'] == SINIESTRO_VEHICULO){
+                                $entityPoliza->vehiculo = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza']['poliza_id']);
                             }
 
-                            $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id']);
-                            $entityPoliza->calculo = $this->calculoSiniestro($poliza['siniestro']['monto_siniestro'],$poliza['prima_total']);
-
+                            $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['poliza']['aseguradora_id']);
+                            $entityPoliza->calculo = $this->calculoSiniestro($poliza['monto_siniestro'],$poliza['poliza']['prima_total']);
 
                             array_push($arrayResultFinal,$entityPoliza);
 
@@ -662,8 +736,16 @@ class SiniestroController extends JcrAPIController{
 
     public function calculoSiniestro($monto_siniestro,$poliza_prima){
 
-        $result = ($monto_siniestro * 100) / $poliza_prima;
-        $result =  number_format($result, 2, '.', '');
+        try{
+
+            $result = ($monto_siniestro * 100) / $poliza_prima;
+            $result =  number_format($result, 2, '.', '');
+
+        }catch(\Exception $e){
+            Log::info("Error calculado: " .$e->getMessage());
+            $result = 0;
+        }
+
         return $result;
     }
 

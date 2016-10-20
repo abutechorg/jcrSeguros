@@ -21,15 +21,14 @@
     <br>
 </div>
 
-<h1>Reporte de Siniestralidad</h1>
+<h1>Reporte de Siniestros</h1>
 <main class="infoUser">
 
     <table class="accessTable">
         <tr>
             <th>Numero de Poliza</th>
             <th>Numero de Siniestro</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
+            <th>Cliente</th>
             <th>CI</th>
             <th>Placa</th>
             <th>Ramo</th>
@@ -52,33 +51,32 @@
                     <tr>
                         <td class="font"><?= $siniestro['numero_poliza']; ?></td>
                         <td class="font"><?= $siniestro['numero_siniestro']; ?></td>
-                        <td class="font"><?= $siniestro['asegurado']['nombre_cliente']; ?></td>
-                        <td class="font"><?= $siniestro['asegurado']['apellido_cliente']; ?></td>
+                        <td class="font"><?= $siniestro['asegurado']['nombre_cliente']; ?>&nbsp;<?= $siniestro['asegurado']['apellido_cliente']; ?></td>
                         <td class="font"><?= $siniestro['asegurado']['documento_id_cliente']; ?></td>
                         <td class="font">N/A</td>
                         <td class="font"><?= $siniestro['ramo'][0]['ramo_nombre']; ?></td>
                         <td class="font"><?= $siniestro['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $siniestro['agente']; ?></td>
                         <td class="font"><?= $siniestro['aseguradora'][0]['aseguradora_nombre']; ?></td>
-                        <td class="font"><?= $siniestro['prima_total']; ?></td>
+                        <td class="font"><?php echo $this->Number->format($siniestro['prima_total'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
                         <td class="font">
 
                             <?php $flag=false; ?>
 
                             <?php foreach($siniestro['coberturas'] as $sa) :?>
                                 <?php if($sa['cobertura_id'] == 1) : $flag=true; ?>
-                                    HCB: <?= $sa['descripciones_cobertura'][0]['monto']; ?>
+                                    HCB: <?php echo $this->Number->format($sa['descripciones_cobertura'][0]['monto'],array('locale'=>'es_VE'))?>
                                 <?php elseif($sa['cobertura_id'] == 3) : $flag=true;?>
-                                    MB:  <?= $sa['descripciones_cobertura'][0]['monto']; ?>
+                                    MB:  <?php echo $this->Number->format($sa['descripciones_cobertura'][0]['monto'],array('locale'=>'es_VE')) ?>
                                 <?php endif?>
                             <?php endforeach?>
 
                             <?php if(!$flag): ?>
-                                <?= $siniestro['coberturas'][0]['descripciones_cobertura'][0]['monto']; ?>
+                                <?php echo  $this->Number->format($siniestro['coberturas'][0]['descripciones_cobertura'][0]['monto'],array('before'=>'Bs','locale'=>'es_VE')) ?>
                             <?php endif?>
 
                         </td>
-                        <td class="font"><?= $siniestro['monto_siniestro']?></td>
+                        <td class="font"><?php echo $this->Number->format($siniestro['monto_siniestro'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
                         <td class="font"><?= $siniestro['calculo']?>%</td>
                     </tr>
 
@@ -87,17 +85,16 @@
                 <tr>
                     <td class="font"><?= $siniestro['numero_poliza']; ?></td>
                     <td class="font"><?= $siniestro['numero_siniestro']; ?></td>
-                    <td class="font"><?= $siniestro['asegurado']['nombre_cliente']; ?></td>
-                    <td class="font"><?= $siniestro['asegurado']['apellido_cliente']; ?></td>
+                    <td class="font"><?= $siniestro['asegurado']['nombre_cliente']; ?>&nbsp;<?= $siniestro['asegurado']['apellido_cliente']; ?></td>
                     <td class="font"><?= $siniestro['asegurado']['documento_id_cliente']; ?></td>
                     <td class="font"><?= $siniestro['vehiculo'][0]['vehiculo_placa']?></td>
                     <td class="font"><?= $siniestro['ramo'][0]['ramo_nombre']; ?></td>
                     <td class="font"><?= $siniestro['fecha_vencimiento']; ?></td>
                     <td class="font"><?= $siniestro['agente']; ?></td>
                     <td class="font"><?= $siniestro['aseguradora'][0]['aseguradora_nombre']; ?></td>
-                    <td class="font"><?= $siniestro['prima_total']; ?></td>
-                    <td class="font"><?= $siniestro['coberturas'][0]['descripciones_cobertura'][0]['monto']; ?></td>
-                    <td class="font"><?= $siniestro['monto_siniestro']?></td>
+                    <td class="font"><?php echo $this->Number->format($siniestro['prima_total'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
+                    <td class="font"><?php echo $this->Number->format($siniestro['coberturas'][0]['descripciones_cobertura'][0]['monto'],array('before'=>'Bs','locale'=>'es_VE')) ?></td>
+                    <td class="font"><?php echo $this->Number->format($siniestro['monto_siniestro'],array('before'=>'Bs','locale'=>'es_VE')) ?></td>
                     <td class="font"><?= $siniestro['calculo']?>%</td>
                 </tr>
             <?php endif?>

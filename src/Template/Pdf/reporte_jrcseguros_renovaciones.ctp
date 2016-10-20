@@ -27,8 +27,7 @@
     <table class="accessTable">
         <tr>
             <th>Numero de Poliza</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
+            <th>Cliente</th>
             <th>CI</th>
             <th>Placa</th>
             <th>Ramo</th>
@@ -50,16 +49,15 @@
                 <?php foreach($poliza['vehiculos'] as $vehiculo): ?>
                     <tr>
                         <td class="font"><?= $poliza['numero_poliza']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['apellido_cliente']; ?></td>
+                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?>&nbsp;<?= $poliza['asegurado']['apellido_cliente']; ?></td>
                         <td class="font"><?= $poliza['asegurado']['documento_id_cliente']; ?></td>
                         <td class="font"><?= $vehiculo['vehiculo_placa']?></td>
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
                         <td class="font"><?= $poliza['aseguradora']; ?></td>
-                        <td class="font"><?= $poliza['prima_total']; ?></td>
-                        <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['prima_total'],array('before'=>'Bs','locale'=>'es_VE')) ?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
                     </tr>
 
                 <?php endforeach?>
@@ -67,31 +65,29 @@
             <?php elseif($poliza['ramo']['ramo_id'] == 4) : ?>
                     <tr>
                         <td class="font"><?= $poliza['numero_poliza']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['apellido_cliente']; ?></td>
+                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?>&nbsp;<?= $poliza['asegurado']['apellido_cliente']; ?></td>
                         <td class="font"><?= $poliza['asegurado']['documento_id_cliente']; ?></td>
                         <td class="font"><?=$poliza['vehiculos'][0]['vehiculo_placa']?></td>
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
                         <td class="font"><?= $poliza['aseguradora']; ?></td>
-                        <td class="font"><?= $poliza['prima_total']; ?></td>
-                        <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['prima_total'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto'],array('before'=>'Bs','locale'=>'es_VE')) ?></td>
                     </tr>
 
                 <?php else: ?>
                     <tr>
                         <td class="font"><?= $poliza['numero_poliza']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?></td>
-                        <td class="font"><?= $poliza['asegurado']['apellido_cliente']; ?></td>
+                        <td class="font"><?= $poliza['asegurado']['nombre_cliente']; ?>&nbsp;<?= $poliza['asegurado']['apellido_cliente']; ?></td>
                         <td class="font"><?= $poliza['asegurado']['documento_id_cliente']; ?></td>
                         <td class="font">N/A</td>
                         <td class="font"><?= $poliza['ramo']['ramo_nombre']; ?></td>
                         <td class="font"><?= $poliza['fecha_vencimiento']; ?></td>
                         <td class="font"><?= $poliza['agente']; ?></td>
                         <td class="font"><?= $poliza['aseguradora']; ?></td>
-                        <td class="font"><?= $poliza['prima_total']; ?></td>
-                        <td class="font"><?= $poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto']; ?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['prima_total'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
+                        <td class="font"><?php echo $this->Number->format($poliza['suma_asegurada'][0]['descripciones_cobertura'][0]['monto'],array('before'=>'Bs','locale'=>'es_VE'))?></td>
                     </tr>
                 <?php endif?>
         <?php endforeach?>

@@ -13,8 +13,9 @@ use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
 use App\Util\ReaxiumApiMessages;
 
-define('RAMO_AUTO_FLOTA',3);
-define('RAMO_AUTO_INDIVIDUAL',4);
+define('RAMO_AUTO_FLOTA', 3);
+define('RAMO_AUTO_INDIVIDUAL', 4);
+
 class PolizaController extends JcrAPIController
 {
 
@@ -49,7 +50,7 @@ class PolizaController extends JcrAPIController
                         $relationPolizaVehiculo,
                         $financiamientoTable
                     ) {
-                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo, $polizaRequest,$financiamientoTable);
+                        $this->procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable, $vehiculoTable, $relationPolizaVehiculo, $polizaRequest, $financiamientoTable);
                     });
 
                     $response = parent::setSuccessfulSave($response);
@@ -80,7 +81,7 @@ class PolizaController extends JcrAPIController
      * @param $polizaJson
      * @throws Exception
      */
-    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable,$vehiculoTable,$relationPolizaVehiculo,$polizaJson,$financiamientoTable)
+    private function procesarLaCreacionDeLaPoliza($polizaTable, $clienteTable, $polizaCoberturaTable, $vehiculoTable, $relationPolizaVehiculo, $polizaJson, $financiamientoTable)
     {
         $clienteController = new ClientController();
         $polizaCreationResult = null;
@@ -95,7 +96,6 @@ class PolizaController extends JcrAPIController
         }
 
 
-
         if ($polizaCreationResult) {
 
             $poliza_id = $polizaCreationResult['poliza_id'];
@@ -104,18 +104,18 @@ class PolizaController extends JcrAPIController
 
             // valido si hay financiamiento
 
-            if($polizaJson['es_financiado']){
+            if ($polizaJson['es_financiado']) {
 
-                $polizaCoberturaResult = $this->createFinanciamiento($financiamientoTable,$polizaJson['financiamento'],$poliza_id);
+                $polizaCoberturaResult = $this->createFinanciamiento($financiamientoTable, $polizaJson['financiamento'], $poliza_id);
 
-                if(!isset($polizaCoberturaResult)){
+                if (!isset($polizaCoberturaResult)) {
                     Log::info($polizaCoberturaResult);
                     throw new Exception("Fallo la creacion del financiamiento");
                 }
             }
 
 
-            $polizaCoberturaResult = $this->agregarCoberturaALaPoliza($polizaCoberturaTable, $polizaCreationResult,$polizaJson);
+            $polizaCoberturaResult = $this->agregarCoberturaALaPoliza($polizaCoberturaTable, $polizaCreationResult, $polizaJson);
 
 
             if (!$polizaCoberturaResult) {
@@ -124,23 +124,23 @@ class PolizaController extends JcrAPIController
             } else {
 
                 //validando si el ramo de auto
-                if($ramoPoliza_id == RAMO_AUTO_FLOTA || $ramoPoliza_id == RAMO_AUTO_INDIVIDUAL){
+                if ($ramoPoliza_id == RAMO_AUTO_FLOTA || $ramoPoliza_id == RAMO_AUTO_INDIVIDUAL) {
                     $vehiculoCtrl = new VehiculoController();
-                    $vehiculoResult = $vehiculoCtrl->createAVehiculo($vehiculoTable,$polizaJson['vehiculo']);
+                    $vehiculoResult = $vehiculoCtrl->createAVehiculo($vehiculoTable, $polizaJson['vehiculo']);
 
-                    if(isset($vehiculoResult)){
+                    if (isset($vehiculoResult)) {
 
                         $editMode = isset($polizaJson['poliza_id']) ? true : false;
-                        $relationVehiPoli = $vehiculoCtrl->relationShipPolizaVehiculo($relationPolizaVehiculo,$poliza_id,$vehiculoResult,$editMode);
+                        $relationVehiPoli = $vehiculoCtrl->relationShipPolizaVehiculo($relationPolizaVehiculo, $poliza_id, $vehiculoResult, $editMode);
 
-                        if(isset($relationVehiPoli)){
+                        if (isset($relationVehiPoli)) {
                             Log::info("Proceso de creacion de poliza finaliado con exito");
-                        }else{
+                        } else {
                             Log::info("Error relacionando vehiculo con poliza");
                             throw new Exception("Error relacionando vehiculo con poliza");
                         }
 
-                    }else{
+                    } else {
                         Log::info("Error salvando vehiculo");
                         throw new Exception("Fallo la creacion de vehiculo");
                     }
@@ -167,7 +167,7 @@ class PolizaController extends JcrAPIController
         $coberturasDeLaPoliza = $polizaJson['ramo']['coberturas'];
         $polizaCoberturaReuslt = false;
 
-        $polizaCoberturaTable->deleteAll(array('poliza_id'=>$polizaSalvada['poliza_id']));
+        $polizaCoberturaTable->deleteAll(array('poliza_id' => $polizaSalvada['poliza_id']));
 
         foreach ($coberturasDeLaPoliza as $cobertura) {
             $descripcionDeCoberturasEnLaPoliza = $cobertura['descripciones_cobertura'];
@@ -217,7 +217,6 @@ class PolizaController extends JcrAPIController
         $polizaResult = $polizaTable->save($polizaEntity);
         return $polizaResult;
     }
-
 
 
     /**
@@ -322,7 +321,6 @@ class PolizaController extends JcrAPIController
     }
 
 
-
     /**
      * Servicio para obtener polizas paginadas
      */
@@ -337,14 +335,15 @@ class PolizaController extends JcrAPIController
         if (parent::validJcrJsonHeader($jsonObject)) {
             try {
                 if (isset($jsonObject['JcrParameters']['page'])) {
+
                     $page = $jsonObject['JcrParameters']["page"];
                     $sortedBy = !isset($jsonObject['JcrParameters']["sortedBy"]) ? 'numero_poliza' : $jsonObject['JcrParameters']["sortedBy"];
                     $sortDir = !isset($jsonObject['JcrParameters']["sortDir"]) ? 'desc' : $jsonObject['JcrParameters']["sortDir"];
                     $filter = !isset($jsonObject['JcrParameters']["filter"]) ? '' : $jsonObject['JcrParameters']["filter"];
                     $limit = !isset($jsonObject['JcrParameters']["limit"]) ? 10 : $jsonObject['JcrParameters']["limit"];
+                    $search_by_ci_or_placa = !isset($jsonObject['JcrParameters']["search_code"]) ? 'numero_poliza' : $jsonObject['JcrParameters']["search_code"];
 
-
-                    $polizaFound = $this->getAllPolizaBySinestros($filter, $sortedBy, $sortDir);
+                    $polizaFound = $this->getAllPolizaBySinestros($filter, $sortedBy, $sortDir, $search_by_ci_or_placa);
 
                     $count = $polizaFound->count();
                     $this->paginate = array('limit' => $limit, 'page' => $page);
@@ -353,10 +352,32 @@ class PolizaController extends JcrAPIController
                     if ($polizaFound->count() > 0) {
                         $maxPages = floor((($count - 1) / $limit) + 1);
                         $polizaFound = $polizaFound->toArray();
+                        $siniestroCtrl = new SiniestroController();
+                        $ramoArray = null;
+                        $aseguradoraArray = null;
+
+                        if ($search_by_ci_or_placa > 0 && isset($filter)) {
+
+                            foreach ($polizaFound as $poliza) {
+
+                                $ramoArray = $siniestroCtrl->getRamoSystem($poliza['ramo_id']);
+                                if (isset($ramoArray)) {
+                                    $poliza['ramo'] = $ramoArray[0];
+                                }
+
+                                $aseguradoraArray = $this->getAseguradoraByID($poliza['aseguradora_id']);
+                                if (isset($aseguradoraArray)) {
+                                    $poliza['aseguradora'] = $aseguradoraArray[0];
+                                }
+                            }
+                        }
+
+
                         $response['JcrResponse']['totalRecords'] = $count;
                         $response['JcrResponse']['totalPages'] = $maxPages;
                         $response['JcrResponse']['object'] = $polizaFound;
                         $response = parent::setSuccessfulResponse($response);
+
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
                         $response['JcrResponse']['message'] = 'No Poliza found';
@@ -377,6 +398,7 @@ class PolizaController extends JcrAPIController
         Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
     }
+
     /**
      * @param $filter
      * @param $sortedBy
@@ -411,35 +433,101 @@ class PolizaController extends JcrAPIController
     }
 
 
-
     /**
      * @param $filter
      * @param $sortedBy
      * @param $sortDir
      * @return $this
      */
-    private function getAllPolizaBySinestros($filter, $sortedBy, $sortDir)
+    private function getAllPolizaBySinestros($filter, $sortedBy, $sortDir, $search_by_ci_or_placa)
     {
         $polizaTable = TableRegistry::get('Poliza');
 
         if (trim($filter) != '') {
-            $whereCondition = array(array('OR' => array(
-                array('numero_poliza LIKE' => '%' . $filter . '%'),
-                array('Poliza.ramo_id LIKE' => '%' . $filter . '%'),
-                array('Poliza.aseguradora_id LIKE' => '%' . $filter . '%'))));
 
-            //agregar los contain cuando sea necesario
-            $polizaFound = $polizaTable->find()
-                ->where($whereCondition)
-                ->andWhere(array('Poliza.status_id' => 1,'Poliza.ramo_id in'=>array(1,2,3,4)))
-                ->contain(array('Aseguradora', 'Ramo'))
-                ->order(array($sortedBy . ' ' . $sortDir));
+            switch ($search_by_ci_or_placa) {
+
+                case 1:
+                    Log::info("Buscar poliza por CI");
+
+                    $whereCondition = array(array('OR' => array(
+                        array('asegurado.documento_id_cliente LIKE' => '%' . $filter . '%'))));
+
+                    $polizaFound = $polizaTable->find('all', array('fields' => array(
+                        'Poliza.poliza_id',
+                        'Poliza.numero_poliza',
+                        'Poliza.ramo_id',
+                        'Poliza.cliente_id_tomador',
+                        'Poliza.cliente_id_titular',
+                        'Poliza.agente',
+                        'Poliza.aseguradora_id',
+                        'Poliza.prima_total',
+                        'Poliza.fecha_vencimiento',
+                        'Poliza.numero_recibo',
+                        'asegurado.nombre_cliente',
+                        'asegurado.apellido_cliente',
+                        'asegurado.documento_id_cliente'
+                    )))
+                        ->join(array(
+                            'asegurado' => array('table' => 'clientes', 'type' => 'LEFT', 'conditions' => 'Poliza.cliente_id_titular = asegurado.cliente_id')
+                        ))
+                        ->where($whereCondition)
+                        ->andWhere(array('Poliza.status_id' => 1))
+                        ->order(array($sortedBy . ' ' . $sortDir));
+
+                    break;
+
+                case 2:
+
+                    Log::info("Buscar poliza por placa");
+
+                    $whereCondition = array(array('OR' => array(
+                        array('vehiculo.vehiculo_placa LIKE' => '%' . $filter . '%'))));
+
+                    $polizaFound = $polizaTable->find('all', array('fields' => array(
+                        'Poliza.poliza_id',
+                        'Poliza.numero_poliza',
+                        'Poliza.ramo_id',
+                        'Poliza.cliente_id_tomador',
+                        'Poliza.cliente_id_titular',
+                        'Poliza.agente',
+                        'Poliza.aseguradora_id',
+                        'Poliza.prima_total',
+                        'Poliza.fecha_vencimiento',
+                        'Poliza.numero_recibo',
+                        'vehiculo.vehiculo_placa'
+                    )))
+                        ->join(array(
+                            'polizaVehiculo' => array('table' => 'poliza_vehiculo', 'type' => 'LEFT', 'conditions' => 'Poliza.poliza_id = polizaVehiculo.poliza_id'),
+                            'vehiculo' => array('table' => 'vehiculo', 'type' => 'LEFT', 'conditions' => 'polizaVehiculo.vehiculo_id = vehiculo.vehiculo_id')))
+                        ->where($whereCondition)
+                        ->andWhere(array('Poliza.status_id' => 1))
+                        ->order(array($sortedBy . ' ' . $sortDir));
+
+                    break;
+
+                default:
+
+                    $whereCondition = array(array('OR' => array(
+                        array('numero_poliza LIKE' => '%' . $filter . '%'))));
+
+                    //agregar los contain cuando sea necesario
+                    $polizaFound = $polizaTable->find()
+                        ->where($whereCondition)
+                        ->andWhere(array('Poliza.status_id' => 1))
+                        ->contain(array('Aseguradora', 'Ramo'))
+                        ->order(array($sortedBy . ' ' . $sortDir));
+
+                    break;
+            }
+
         } else {
             //agregar los contain cuando sea necesario
             $polizaFound = $polizaTable->find()
-                ->where(array('Poliza.status_id' => 1,'Poliza.ramo_id in'=>array(1,2,3,4)))
+                ->where(array('Poliza.status_id' => 1))
                 ->contain(array('Aseguradora', 'Ramo'))
                 ->order(array($sortedBy . ' ' . $sortDir));
+
         }
 
         return $polizaFound;
@@ -472,11 +560,10 @@ class PolizaController extends JcrAPIController
                         //verifico si existe financiamiento
                         $financiamiento = $this->getFinanciamientoByPoliza($poliza_id);
 
-                        if(isset($financiamiento)){
+                        if (isset($financiamiento)) {
                             $polizaFound[0]['es_financiado'] = true;
                             $polizaFound[0]['financiamento'] = $financiamiento[0];
-                        }
-                        else{
+                        } else {
                             $polizaFound[0]['es_financiado'] = false;
                             $polizaFound[0]['financiamento'] = [];
                         }
@@ -486,22 +573,23 @@ class PolizaController extends JcrAPIController
 
                         if ($polizaFound[0]['cliente_id_tomador'] == $polizaFound[0]['cliente_id_titular']) {
                             $polizaFound[0]['asegurado']['es_tomador'] = true;
-                        }else{
+                        } else {
                             $polizaFound[0]['asegurado']['es_tomador'] = false;
                         }
 
 
                         $polizaFound[0]['ramo']['coberturas'] = $this->getCoberturasDeLaPoliza($poliza_id);
 
-                        if($polizaFound[0]['ramo_id'] == RAMO_AUTO_INDIVIDUAL ||
-                            $polizaFound[0]['ramo_id'] == RAMO_AUTO_FLOTA){
+                        if ($polizaFound[0]['ramo_id'] == RAMO_AUTO_INDIVIDUAL ||
+                            $polizaFound[0]['ramo_id'] == RAMO_AUTO_FLOTA
+                        ) {
 
                             $vehiculoCtrl = new VehiculoController();
                             $vehiculoListPoliza = $vehiculoCtrl->getVehiculoRelationPoliza($poliza_id);
 
-                            if(isset($vehiculoListPoliza)){
+                            if (isset($vehiculoListPoliza)) {
                                 $polizaFound[0]['vehiculo'] = $vehiculoListPoliza;
-                            }else{
+                            } else {
                                 $polizaFound[0]['vehiculo'] = array();
                             }
 
@@ -544,10 +632,10 @@ class PolizaController extends JcrAPIController
         $polizaCoberturaTabla = TableRegistry::get("PolizaCobertura");
         $polizaCoberturaResult = $polizaCoberturaTabla->find()
             ->select(array('cobertura_id' => 'Cobertura.cobertura_id',
-            'cobertura_nombre' => 'Cobertura.cobertura_nombre',
-            'descripcion_cobertura_id' => 'DescripcionCobertura.descripcion_cobertura_id',
-            'descripcion_cobertura_nombre' => 'DescripcionCobertura.descripcion_cobertura_nombre',
-            'monto' => 'PolizaCobertura.monto'))
+                'cobertura_nombre' => 'Cobertura.cobertura_nombre',
+                'descripcion_cobertura_id' => 'DescripcionCobertura.descripcion_cobertura_id',
+                'descripcion_cobertura_nombre' => 'DescripcionCobertura.descripcion_cobertura_nombre',
+                'monto' => 'PolizaCobertura.monto'))
             ->where(array('PolizaCobertura.poliza_id' => $polizaId))
             ->contain(array('Cobertura', 'DescripcionCobertura'));
         if ($polizaCoberturaResult->count() > 0) {
@@ -555,29 +643,29 @@ class PolizaController extends JcrAPIController
             $polizaCoberturaResult = $polizaCoberturaResult->toArray();
             $auxArray = ReaxiumUtil::arrayCopy($polizaCoberturaResult);
 
-            Log::info("POliza Cobertura: ".json_encode($polizaCoberturaResult));
+            Log::info("POliza Cobertura: " . json_encode($polizaCoberturaResult));
 
 
             foreach ($polizaCoberturaResult as $coberturasEnPoliza) {
 
-                $listCoberturas = $this->extraerListDecripcionCoberturas($coberturasEnPoliza['cobertura_id'],$auxArray);
+                $listCoberturas = $this->extraerListDecripcionCoberturas($coberturasEnPoliza['cobertura_id'], $auxArray);
 
-                if(!$this->existeCoberturaLista($coberturasEnPoliza['cobertura_id'],$coberturasDeLaPoliza)){
+                if (!$this->existeCoberturaLista($coberturasEnPoliza['cobertura_id'], $coberturasDeLaPoliza)) {
 
                     $arraFinalDCober = array();
 
-                    foreach($listCoberturas as $cober){
+                    foreach ($listCoberturas as $cober) {
                         $entityCober = $polizaCoberturaTabla->newEntity();
                         $entityCober->descripcion_cobertura_id = $cober['descripciones_cobertura']['descripcion_cobertura_id'];
-                        $entityCober->descripcion_cobertura_nombre =$cober['descripciones_cobertura']['descripcion_cobertura_nombre'];
+                        $entityCober->descripcion_cobertura_nombre = $cober['descripciones_cobertura']['descripcion_cobertura_nombre'];
                         $entityCober->monto = $cober['descripciones_cobertura']['monto'];
-                        array_push($arraFinalDCober,$entityCober);
+                        array_push($arraFinalDCober, $entityCober);
                     }
 
 
                     $coberturas = array('cobertura_id' => $coberturasEnPoliza['cobertura_id'],
                         'cobertura_nombre' => $coberturasEnPoliza['cobertura_nombre'],
-                        'descripciones_cobertura' =>$arraFinalDCober);
+                        'descripciones_cobertura' => $arraFinalDCober);
 
                     array_push($coberturasDeLaPoliza, $coberturas);
                 }
@@ -588,20 +676,21 @@ class PolizaController extends JcrAPIController
     }
 
 
-    private function extraerListDecripcionCoberturas($cobertura_id,$auxArray){
+    private function extraerListDecripcionCoberturas($cobertura_id, $auxArray)
+    {
 
         $polizaCoberturaTabla = TableRegistry::get("PolizaCobertura");
         $listCoberturas = array();
 
-        foreach($auxArray as $cobertura){
+        foreach ($auxArray as $cobertura) {
 
-            if($cobertura['cobertura_id'] == $cobertura_id){
+            if ($cobertura['cobertura_id'] == $cobertura_id) {
 
                 $entityCoberturas = $polizaCoberturaTabla->newEntity();
-                $entityCoberturas->descripciones_cobertura = array('descripcion_cobertura_id'=>$cobertura['descripcion_cobertura_id'],
-                    'descripcion_cobertura_nombre'=>$cobertura['descripcion_cobertura_nombre'],'monto'=>$cobertura['monto']);
+                $entityCoberturas->descripciones_cobertura = array('descripcion_cobertura_id' => $cobertura['descripcion_cobertura_id'],
+                    'descripcion_cobertura_nombre' => $cobertura['descripcion_cobertura_nombre'], 'monto' => $cobertura['monto']);
 
-                array_push($listCoberturas,$entityCoberturas);
+                array_push($listCoberturas, $entityCoberturas);
             }
 
         }
@@ -610,13 +699,14 @@ class PolizaController extends JcrAPIController
     }
 
 
-    private function existeCoberturaLista($cobertura_id,$listCobertura){
+    private function existeCoberturaLista($cobertura_id, $listCobertura)
+    {
 
         $existeCobertura = false;
 
-        foreach($listCobertura as $cobertura){
+        foreach ($listCobertura as $cobertura) {
 
-            if($cobertura['cobertura_id'] == $cobertura_id){
+            if ($cobertura['cobertura_id'] == $cobertura_id) {
                 $existeCobertura = true;
                 break;
             }
@@ -731,9 +821,10 @@ class PolizaController extends JcrAPIController
      * @param $aseguradora_id
      * @return $this|array|null
      */
-    public function getListPolizaRenovaciones($start_date,$end_date,$aseguradora_id,$mode){
+    public function getListPolizaRenovaciones($start_date, $end_date, $aseguradora_id, $mode)
+    {
 
-        try{
+        try {
 
             $polizaTable = TableRegistry::get("Poliza");
             $vehiculoTable = TableRegistry::get("Vehiculo");
@@ -758,22 +849,22 @@ class PolizaController extends JcrAPIController
                 array_push($conditions, $aseguradoraCondition);
             }
 
-            $polizaFound = $polizaTable->find()->where($conditions)->contain(array('Aseguradora','Ramo'));
+            $polizaFound = $polizaTable->find()->where($conditions)->contain(array('Aseguradora', 'Ramo'));
 
-            if($mode){
+            if ($mode) {
 
-                if($polizaFound->count() > 0){
+                if ($polizaFound->count() > 0) {
 
                     $polizaFound = $polizaFound->toArray();
 
                     $result = array();
 
                     //tratar el arreglo de polizas
-                    foreach($polizaFound as $poliza){
+                    foreach ($polizaFound as $poliza) {
 
                         $entityPoliza = $vehiculoTable->newEntity();
 
-                        if($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA){
+                        if ($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA) {
 
                             $entityPoliza->poliza_id = $poliza['poliza_id'];
                             $entityPoliza->numero_poliza = $poliza['numero_poliza'];
@@ -784,10 +875,9 @@ class PolizaController extends JcrAPIController
                             $entityPoliza->ramo = $poliza['ramo'];
                             $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
                             $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                            $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
 
-                        }
-                        else{
+                        } else {
                             $entityPoliza->poliza_id = $poliza['poliza_id'];
                             $entityPoliza->numero_poliza = $poliza['numero_poliza'];
                             $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
@@ -796,22 +886,20 @@ class PolizaController extends JcrAPIController
                             $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
                             $entityPoliza->ramo = $poliza['ramo'];
                             $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                            $entityPoliza->aseguradora =$this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
                         }
 
-                        array_push($result,$entityPoliza);
+                        array_push($result, $entityPoliza);
                     }
 
                     $polizaFound = ReaxiumUtil::arrayCopy($result);
 
-                }
-                else{
+                } else {
                     $polizaFound = null;
                 }
             }
 
-        }
-        catch (\Exception $e){
+        } catch (\Exception $e) {
             Log::info($e->getMessage());
             $polizaFound = null;
         }
@@ -820,14 +908,12 @@ class PolizaController extends JcrAPIController
     }
 
 
-    public function getAumentoSA($start_date,$end_date,$monto_min,$monto_max,$ramo_id,$aseguradora_id){
+    public function getAumentoSA($start_date, $end_date, $monto, $aseguradora_id, $mode)
+    {
 
-        try{
+        try {
+
             $polizaTable = TableRegistry::get("Poliza");
-            $vehiculoTable = TableRegistry::get("Vehiculo");
-            $vehiculoCtrl = new VehiculoController();
-            $clientCtrl = new ClientController();
-
 
             $conditions = array();
 
@@ -843,22 +929,19 @@ class PolizaController extends JcrAPIController
 
             //agregar montos de busqueda
 
-            if (isset($monto_min)) {
-                $montoMinCondition = array('cobertura.descripcion_cobertura_id'=>1,'cobertura.monto >=' => $monto_min);
+            if (isset($monto)) {
+                $montoMinCondition = array('cobertura.descripcion_cobertura_id' => 1, 'cobertura.monto <' => $monto);
                 array_push($conditions, $montoMinCondition);
-                if (isset($monto_max)) {
-                    $montoMaxCondition = array('cobertura.descripcion_cobertura_id'=>1,'cobertura.monto <=' => $monto_max);
-                    array_push($conditions, $montoMaxCondition);
-                }
+
             }
 
-            if(isset($ramo_id)){
-                $ramoIdCondition = array('Poliza.ramo_id'=>$ramo_id);
-                array_push($conditions,$ramoIdCondition);
+            if (isset($aseguradora_id)) {
+                $aseguradoraCondition = array('Poliza.aseguradora_id' => $aseguradora_id);
+                array_push($conditions, $aseguradoraCondition);
             }
 
 
-            $polizaFound = $polizaTable->find('all',array('fields'=>array(
+            $polizaFound = $polizaTable->find('all', array('fields' => array(
                 'Poliza.poliza_id',
                 'Poliza.numero_poliza',
                 'Poliza.ramo_id',
@@ -868,35 +951,97 @@ class PolizaController extends JcrAPIController
                 'Poliza.aseguradora_id',
                 'Poliza.prima_total',
                 'Poliza.fecha_vencimiento',
+                'Poliza.fecha_emision',
                 'cobertura.monto'
             )))
-            ->join(array(
-               'cobertura'=>array('table'=>'poliza_coberturas','type'=>'LEFT','conditions'=>'Poliza.poliza_id = cobertura.poliza_id')
-            ))->where($conditions);
+                ->join(array(
+                    'cobertura' => array('table' => 'poliza_coberturas', 'type' => 'LEFT', 'conditions' => 'Poliza.poliza_id = cobertura.poliza_id')
+                ))
+                ->where($conditions);
 
 
-        }catch (\Exception $e){
+            if ($mode) {
+
+                if ($polizaFound->count() > 0) {
+
+                    $polizaFound = $polizaFound->toArray();
+
+                    $vehiculoTable = TableRegistry::get("Vehiculo");
+                    $vehiculoCtrl = new VehiculoController();
+                    $clientCtrl = new ClientController();
+                    $siniestroCtrl = new SiniestroController();
+
+                    $result = array();
+
+                    //tratar el arreglo de polizas
+                    foreach ($polizaFound as $poliza) {
+
+                        $entityPoliza = $vehiculoTable->newEntity();
+
+                        if ($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA) {
+
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->fecha_emision = $poliza['fecha_emision'];
+                            $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                            $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                        }
+                        else {
+
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->fecha_emision = $poliza['fecha_emision'];
+                            $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                        }
+
+                        array_push($result, $entityPoliza);
+                    }
+
+                    $polizaFound = ReaxiumUtil::arrayCopy($result);
+                } else {
+                    $polizaFound = null;
+                }
+
+            }
+
+
+        } catch (\Exception $e) {
             Log::info($e->getMessage());
             $polizaFound = null;
         }
 
-       return  $polizaFound;
+        return $polizaFound;
 
     }
 
 
-    public function createFinanciamiento($financiamientoTable,$jsonFinanciamiento,$poliza_id){
+    public function createFinanciamiento($financiamientoTable, $jsonFinanciamiento, $poliza_id)
+    {
 
         $result = null;
 
-        try{
+        try {
 
-            Log::info("Objeto Financiamiento: ".json_encode($jsonFinanciamiento));
-            Log::info("Poliza: ".$poliza_id);
+            Log::info("Objeto Financiamiento: " . json_encode($jsonFinanciamiento));
+            Log::info("Poliza: " . $poliza_id);
 
             $entityFinanciamiento = $financiamientoTable->newEntity();
 
-            if(isset($jsonFinanciamiento['financiamiento_id'])){
+            if (isset($jsonFinanciamiento['financiamiento_id'])) {
                 $entityFinanciamiento->financiamiento_id = $jsonFinanciamiento['financiamiento_id'];
             }
 
@@ -907,11 +1052,10 @@ class PolizaController extends JcrAPIController
             $entityFinanciamiento->financiamientos_desde = ReaxiumUtil::getDate($jsonFinanciamiento['financiamientos_desde']);
             $entityFinanciamiento->financiamientos_hasta = ReaxiumUtil::getDate($jsonFinanciamiento['financiamientos_hasta']);
 
-            Log::info("Objeto Financiamiento: "+json_encode($entityFinanciamiento));
+            Log::info("Objeto Financiamiento: " + json_encode($entityFinanciamiento));
 
-            $result =  $financiamientoTable->save($entityFinanciamiento);
-        }
-        catch (\Exception $e){
+            $result = $financiamientoTable->save($entityFinanciamiento);
+        } catch (\Exception $e) {
             Log::info($e);
             $result = null;
         }
@@ -920,30 +1064,31 @@ class PolizaController extends JcrAPIController
     }
 
 
-    public function getFinanciamientoByPoliza($poliza_id){
+    public function getFinanciamientoByPoliza($poliza_id)
+    {
 
         $funcionamientoTable = TableRegistry::get("Financiamientos");
         $result = $funcionamientoTable->findByPolizaId($poliza_id);
 
-        if($result->count()>0){
+        if ($result->count() > 0) {
             $result = $result->toArray();
-        }else{
+        } else {
             $result = null;
         }
 
         return $result;
     }
 
-    public function getAseguradoraByID($aseguradora_id){
+    public function getAseguradoraByID($aseguradora_id)
+    {
 
         $aseguradoraTable = TableRegistry::get("Aseguradora");
-        $aseguradoraFound = $aseguradoraTable->find()->where(array('aseguradora_id'=>$aseguradora_id,'status_id'=>1));
+        $aseguradoraFound = $aseguradoraTable->find()->where(array('aseguradora_id' => $aseguradora_id, 'status_id' => 1));
 
-        if($aseguradoraFound->count() > 0) {
+        if ($aseguradoraFound->count() > 0) {
 
             $aseguradoraFound = $aseguradoraFound->toArray();
-        }
-        else {
+        } else {
             $aseguradoraFound = null;
         }
 
