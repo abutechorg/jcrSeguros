@@ -545,7 +545,7 @@ class ReportesController extends JcrAPIController{
             $response = parent::setInvalidJsonMessage($response);
         }
 
-        Log::info("Responde Object: " . json_encode($response));
+        Log::info("Responde Objects: " . json_encode($response));
         $this->response->body(json_encode($response));
     }
 
