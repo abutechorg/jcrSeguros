@@ -4,6 +4,7 @@ namespace App\Util;
 use Cake\I18n\Time;
 use Cake\Log\Log;
 define('TIME_ZONE', 'America/New_York');
+use Cake\Mailer\Email;
 use DateTime;
 use DateInterval;
 /**
@@ -81,9 +82,7 @@ class ReaxiumUtil
 
     public static function sendMail($to, $subject, $template, $params)
     {
-
         try {
-
             $email = new Email('default');
             $email->emailFormat('html');
             $email->template($template);
@@ -91,12 +90,12 @@ class ReaxiumUtil
             $email->from(array(ReaxiumApiMessages::$EMAILS[0] => 'Reaxium'));
             $email->to($to);
             $email->subject($subject);
-            $email->send();
+            if(!$email->send()) {
+                Log::info($email->smtpError);
+            }
             Log::info("Email sent to: " . $to);
-
         } catch (\Exception $e) {
             Log::info("Error enviando correo" . $e->getMessage());
-
         }
 
     }
