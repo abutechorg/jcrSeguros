@@ -341,7 +341,7 @@ class SystemListController extends JcrAPIController{
 
             try {
 
-                $objAccess = !isset($jsonObject['JcrParameters']['JcrSystem']['object']) ? null : $jsonObject['JcrParameters']['JcrSystem']['object'];
+                 $objAccess = !isset($jsonObject['JcrParameters']['JcrSystem']['object']) ? null : $jsonObject['JcrParameters']['JcrSystem']['object'];
 
                 if (isset($objAccess)) {
 
@@ -371,4 +371,7 @@ class SystemListController extends JcrAPIController{
         Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
     }
+
+
+
 }
