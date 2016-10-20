@@ -8,14 +8,18 @@
 
 namespace App\Controller;
 
+use App\Util\ReaxiumUtil;
 use Cake\Event\Event;
 use Cake\Log\Log;
 use App\Util\ReaxiumApiMessages;
 
+define('WEB_SERVICE_REQUEST_SIGNATURE','JcrParameters');
+define('WEB_SERVICE_RESPONSE_SIGNATURE','JcrResponse');
+
 class JcrAPIController extends AppController
 {
 
-    private  $JcrResponseObject = array("JcrResponse" => array("code"=>"","message"=>"","object"=>array()));
+    private  $JcrResponseObject = array(WEB_SERVICE_RESPONSE_SIGNATURE => array("code"=>"","message"=>"","object"=>array()));
 
     public function beforeFilter(Event $event) {
         parent::beforeFilter($event);
@@ -113,6 +117,50 @@ class JcrAPIController extends AppController
         $JcrMessage['JcrResponse']['code'] = ReaxiumApiMessages::$SUCCESS_CODE;
         $JcrMessage['JcrResponse']['message'] = ReaxiumApiMessages::$SUCCESS_SAVE_MESSAGE;
         return $JcrMessage;
+    }
+
+    /**
+     *
+     * Inicializa las configuraciones necesarias para que el servicio web haga render de las respuestas en JSON
+     * Valida la cabecera de la llamada (Agregar validacion de apitoken)
+     * Toma el objeto json que se recibe de la llamada y valida que en el existan los parametros esperados
+     *
+     *
+     * @param $parametersToBeTested arreglo de parametros que se esperan en la llamada
+     * @param $namespace nombre del controlador "en literal" de donde se recibe la llamada
+     * @param $webServiceMethodName "nombre del metodo que se expone como servicio"
+     * @return arreglo con el codigo y mensajes del resultado de las validaciones iniciales con el objeto json recibido
+     */
+    public function runWebServiceInitialConfAndValidations($parametersToBeTested, $namespace, $webServiceMethodName)
+    {
+        Log::info("Running the webservice method " . $webServiceMethodName);
+        $this->setResultAsAJson();
+        $jsonObject = $this->getJsonReceived();
+        $result = $this->getDefaultJcrMessage();
+        Log::debug("Object Received: " . json_encode($jsonObject));
+        if ($this->validJcrJsonHeader($jsonObject)) {
+            if (isset($jsonObject[WEB_SERVICE_REQUEST_SIGNATURE][$namespace])) {
+                $resultValidation = ReaxiumUtil::validateParameters($parametersToBeTested, $jsonObject[WEB_SERVICE_REQUEST_SIGNATURE][$namespace]);
+                $result[WEB_SERVICE_RESPONSE_SIGNATURE]['code'] = $resultValidation['code'];
+                $result[WEB_SERVICE_RESPONSE_SIGNATURE]['message'] = $resultValidation['message'];
+                $result[WEB_SERVICE_RESPONSE_SIGNATURE]['object'] = $jsonObject[WEB_SERVICE_REQUEST_SIGNATURE][$namespace];
+            } else {
+                $result = $this->setInvalidJsonHeader($result);
+            }
+        } else {
+            $result = $this->setInvalidJsonHeader($result);
+        }
+        return $result;
+    }
+
+    /**
+     * Convierta la respuesta y el tipo de respuesta en JSON
+     * @param $result
+     */
+    public function returnAJson($result)
+    {
+        Log::debug("Json Result: " . json_encode($result));
+        $this->response->body(json_encode($result));
     }
 
 }
