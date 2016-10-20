@@ -24,11 +24,13 @@ class ReaxiumUtil
     public static function validateParameters($arrayToTest, $arrayReceived)
     {
         $result = array('code' => '0', 'message' => '');
-        foreach ($arrayToTest as $value) {
-            if(!isset($arrayReceived[$value])){
-                $result['code'] = '1';
-                $result['message'] = 'invalid parameters, missing parameter '.$value;
-                break;
+        if(sizeof($arrayToTest) > 0){
+            foreach ($arrayToTest as $value) {
+                if (!isset($arrayReceived[$value])) {
+                    $result['code'] = '1';
+                    $result['message'] = 'invalid parameters, missing parameter ' . $value;
+                    break;
+                }
             }
         }
         return $result;
@@ -66,5 +68,36 @@ class ReaxiumUtil
             }
         }
         return $result;
+    }
+
+
+    /**
+     * Metodo para envio de email
+     * @param $to
+     * @param $subject
+     * @param $template
+     * @param $params
+     */
+
+    public static function sendMail($to, $subject, $template, $params)
+    {
+
+        try {
+
+            $email = new Email('default');
+            $email->emailFormat('html');
+            $email->template($template);
+            $email->viewVars($params);
+            $email->from(array(ReaxiumApiMessages::$EMAILS[0] => 'Reaxium'));
+            $email->to($to);
+            $email->subject($subject);
+            $email->send();
+            Log::info("Email sent to: " . $to);
+
+        } catch (\Exception $e) {
+            Log::info("Error enviando correo" . $e->getMessage());
+
+        }
+
     }
 }
