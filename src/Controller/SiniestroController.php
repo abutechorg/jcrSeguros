@@ -574,6 +574,8 @@ class SiniestroController extends JcrAPIController{
                     array_push($conditions,$ramoCondition);
                 }
 
+                //poliza status 1
+                array_push($conditions,array('poliza.status_id'=>1));
 
                 if($numero_ci_or_placa != ''){
 
