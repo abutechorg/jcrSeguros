@@ -1064,6 +1064,148 @@ class PolizaController extends JcrAPIController
     }
 
 
+
+    public function getListVentasCruzadas($start_date,$end_date,$monto,$aseguaradora_id,$mode){
+
+        try{
+
+            $polizaTable = TableRegistry::get("Poliza");
+            $polizaFound = null;
+            $conditions = array();
+
+            // condicion de fecha y validacion
+            if (isset($start_date)) {
+                $startDateCondition = array('Poliza.fecha_vencimiento >=' => $start_date);
+                array_push($conditions, $startDateCondition);
+                if (isset($end_date)) {
+                    $endDateCondition = array('Poliza.fecha_vencimiento <=' => $end_date);
+                    array_push($conditions, $endDateCondition);
+                }
+            }
+
+            //agregar montos de busqueda
+
+            if (isset($monto) && $monto != "") {
+                $montoMinCondition = array('cobertura.descripcion_cobertura_id' => 1, 'cobertura.monto >' => $monto);
+                array_push($conditions, $montoMinCondition);
+            }
+
+            if (isset($aseguaradora_id)) {
+                $aseguradoraCondition = array('Poliza.aseguradora_id' => $aseguaradora_id);
+                array_push($conditions, $aseguradoraCondition);
+            }
+
+            if(isset($monto) && $monto != ""){
+
+                $polizaFound = $polizaTable->find('all', array('fields' => array(
+                    'Poliza.poliza_id',
+                    'Poliza.numero_poliza',
+                    'Poliza.ramo_id',
+                    'Poliza.cliente_id_tomador',
+                    'Poliza.cliente_id_titular',
+                    'Poliza.agente',
+                    'Poliza.aseguradora_id',
+                    'Poliza.prima_total',
+                    'Poliza.fecha_vencimiento',
+                    'Poliza.fecha_emision',
+                    'cobertura.monto'
+                )))
+                    ->join(array(
+                        'cobertura' => array('table' => 'poliza_coberturas', 'type' => 'LEFT', 'conditions' => 'Poliza.poliza_id = cobertura.poliza_id')
+                    ))
+                    ->where($conditions);
+            }
+            else{
+
+                Log::info("Buscar por cliente de mas de 1 poliza");
+
+                $polizaFound = $polizaTable->find('all', array('fields' => array(
+                    'Poliza.poliza_id',
+                    'Poliza.numero_poliza',
+                    'Poliza.ramo_id',
+                    'Poliza.cliente_id_tomador',
+                    'Poliza.cliente_id_titular',
+                    'Poliza.agente',
+                    'Poliza.aseguradora_id',
+                    'Poliza.prima_total',
+                    'Poliza.fecha_vencimiento',
+                    'Poliza.fecha_emision'
+                    )))
+                    ->where($conditions)
+                    ->group(array('Poliza.cliente_id_titular'))
+                    ->having(array('COUNT(Poliza.cliente_id_titular) > ' => 1));
+
+            }
+
+            if ($mode) {
+
+                if ($polizaFound->count() > 0) {
+
+                    $polizaFound = $polizaFound->toArray();
+
+                    $vehiculoTable = TableRegistry::get("Vehiculo");
+                    $vehiculoCtrl = new VehiculoController();
+                    $clientCtrl = new ClientController();
+                    $siniestroCtrl = new SiniestroController();
+
+                    $result = array();
+
+                    //tratar el arreglo de polizas
+                    foreach ($polizaFound as $poliza) {
+
+                        $entityPoliza = $vehiculoTable->newEntity();
+
+                        if ($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA) {
+
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->fecha_emision = $poliza['fecha_emision'];
+                            $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                            $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                        }
+                        else {
+
+                            $entityPoliza->poliza_id = $poliza['poliza_id'];
+                            $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                            $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                            $entityPoliza->agente = $poliza['agente'];
+                            $entityPoliza->prima_total = $poliza['prima_total'];
+                            $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                            $entityPoliza->fecha_emision = $poliza['fecha_emision'];
+                            $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                            $entityPoliza->suma_asegurada = $this->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                            $entityPoliza->aseguradora = $this->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                        }
+
+                        array_push($result, $entityPoliza);
+                    }
+
+                    $polizaFound = ReaxiumUtil::arrayCopy($result);
+                }
+                else {
+                    $polizaFound = null;
+                }
+
+            }
+
+
+        }catch (\Exception $e){
+            Log::info($e->getMessage());
+            $polizaFound = null;
+        }
+
+        return $polizaFound;
+    }
+
+
     public function getFinanciamientoByPoliza($poliza_id)
     {
 
