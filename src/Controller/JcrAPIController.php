@@ -163,4 +163,23 @@ class JcrAPIController extends AppController
         $this->response->body(json_encode($result));
     }
 
+    /**
+     *
+     * Valida si la respuesta es exitosa
+     *
+     * @param $result
+     * @return bool
+     */
+    public function isASuccessfulResult($result)
+    {
+        $isSuccessFull = false;
+        if ($result['code'] == ReaxiumApiMessages::$SUCCESS_CODE) {
+            $isSuccessFull = true;
+        } else {
+            //se limpia el objeto resultado ya que la respuesta no es exitosa
+            $result['object'] = array();
+        }
+        return $isSuccessFull;
+    }
+
 }
