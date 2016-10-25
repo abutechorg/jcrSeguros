@@ -27,7 +27,8 @@
     </tr>
     <tr>
         <td style="padding-left: 10%; color:#5d5d5d; font-size:15px; font-family: Helvetica, Arial, sans-serif; padding-top: 50px; ">
-            Estimado cliente <?= nombre_cliente?>, su póliza de seguros "<?= ramo_nombre?>", numero: <?= numero_poliza?> se encuentra en proceso de renovación.<br>
+           <strong>Estimado cliente <?= $nombre_cliente ?></strong> <br/><br/>
+            Su póliza de seguros "<?= $ramo_nombre ?>", numero: <?= $numero_poliza ?> se encuentra en proceso de renovación.<br><br/>
             Próximamente, nos estaremos comunicando con usted para hacerle llegar la información
             más detallada, además de las alternativas que más se adapten a sus necesidades.<br><br>
             Si desea mayor información, contáctenos a través del 0212-761- 9707.

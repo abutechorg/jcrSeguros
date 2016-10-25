@@ -87,7 +87,7 @@ class ReaxiumUtil
             $email->emailFormat('html');
             $email->template($template);
             $email->viewVars($params);
-            $email->from(array(ReaxiumApiMessages::$EMAILS[0] => 'Reaxium'));
+            $email->from(array(ReaxiumApiMessages::$EMAILS[0] => 'JrcSeguros'));
             $email->to($to);
             $email->subject($subject);
             if(!$email->send()) {

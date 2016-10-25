@@ -799,7 +799,9 @@ class ReportesController extends JcrAPIController
                             Log::info("Nombre  de Cliente: " . $objetos['asegurado']['nombre_cliente']);
                             Log::info("Apellido  de Cliente: " . $objetos['asegurado']['apellido_cliente']);
                             Log::info("Correo  del Cliente: " . $objetos['asegurado']['correo_cliente']);
+                            Log::info("Numero de poliza: " . $objetos['numero_poliza']);
                             Log::info("Ramo  del Cliente: " . $objetos['ramo']['ramo_nombre']);
+
 
                             $nombre_cliente = $objetos['asegurado']['nombre_cliente'] . ' ' . $objetos['asegurado']['apellido_cliente'];
 
@@ -810,7 +812,7 @@ class ReportesController extends JcrAPIController
                             $params = array(
                                 'nombre_cliente' => $nombre_cliente,
                                 'ramo_nombre' => $objetos['ramo']['ramo_nombre'],
-                                'numero_poliza' => $objetos['numero_poliza']);
+                                'numero_poliza' => $objetos ['numero_poliza']);
 
 
 
