@@ -4,6 +4,7 @@ namespace App\Util;
 use Cake\I18n\Time;
 use Cake\Log\Log;
 define('TIME_ZONE', 'America/New_York');
+use Cake\Mailer\Email;
 use DateTime;
 use DateInterval;
 /**

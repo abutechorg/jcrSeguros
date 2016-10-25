@@ -7,6 +7,7 @@
  */
 namespace App\Controller;
 
+use App\Util\ReaxiumUtil;
 use Cake\Core\Exception\Exception;
 use Cake\Log\Log;
 use Cake\ORM\TableRegistry;
@@ -16,19 +17,21 @@ use App\Util\ReaxiumApiMessages;
 define('PATH_DIRECTORY', 'C:/xampp/htdocs/JcrReports');
 define('NAME_FILE', 'JcrReports');
 define('TEMPLATE_RENOVACIONES', 'reporte_jrcseguros_renovaciones');
-define('TEMPLATE_SINIESTRALIDAD','reporte_jrcseguros_siniestralidad');
-define('TEMPLATE_SA','reporte_jrcseguros_aumento_sa');
-define('TEMPLATE_VENTAS_CRUZADAS','reporte_jrcseguros_ventas_cruzadas');
+define('TEMPLATE_SINIESTRALIDAD', 'reporte_jrcseguros_siniestralidad');
+define('TEMPLATE_SA', 'reporte_jrcseguros_aumento_sa');
+define('TEMPLATE_VENTAS_CRUZADAS', 'reporte_jrcseguros_ventas_cruzadas');
 define('ENVIRONMENT', 'http://localhost:8080/JcrReports');
 //define('ENVIRONMENT', 'http://54.213.162.246/jcr_reports');
-define('SINIESTRO_PERSONA',1);
-define('SINIESTRO_VEHICULO',2);
+define('SINIESTRO_PERSONA', 1);
+define('SINIESTRO_VEHICULO', 2);
 
 
-class ReportesController extends JcrAPIController{
+class ReportesController extends JcrAPIController
+{
 
 
-    public function getInfoRenovacion(){
+    public function getInfoRenovacion()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -37,30 +40,30 @@ class ReportesController extends JcrAPIController{
         Log::info('Object received: ' . json_encode($jsonObject));
 
 
-        if(parent::validJcrJsonHeader($jsonObject)){
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            try{
+            try {
                 $page = $jsonObject['JcrParameters']['Reports']["page"];
                 $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
                 $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
                 $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
                 $aseguradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
 
-                if(isset($start_date) && isset($end_date)){
+                if (isset($start_date) && isset($end_date)) {
 
                     $polizaTable = TableRegistry::get("Poliza");
                     $polizaCtrl = new PolizaController();
                     $vehiculoCtrl = new VehiculoController();
                     $clientCtrl = new ClientController();
 
-                    $renovaciones = $polizaCtrl->getListPolizaRenovaciones($start_date,$end_date,$aseguradora_id,false);
+                    $renovaciones = $polizaCtrl->getListPolizaRenovaciones($start_date, $end_date, $aseguradora_id, false);
 
                     $count = $renovaciones->count();
                     $this->paginate = array('limit' => $limit, 'page' => $page);
                     $renovaciones = $this->paginate($renovaciones);
 
 
-                    if($renovaciones->count() > 0){
+                    if ($renovaciones->count() > 0) {
 
                         $maxPages = floor((($count - 1) / $limit) + 1);
                         $renovaciones = $renovaciones->toArray();
@@ -68,11 +71,11 @@ class ReportesController extends JcrAPIController{
                         $arrayResultFinal = array();
 
                         //tratar el arreglo de polizas
-                        foreach($renovaciones as $poliza){
+                        foreach ($renovaciones as $poliza) {
 
                             $entityPoliza = $polizaTable->newEntity();
 
-                            if($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA){
+                            if ($poliza['ramo']['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo']['ramo_id'] == RAMO_AUTO_FLOTA) {
 
                                 $entityPoliza->poliza_id = $poliza['poliza_id'];
                                 $entityPoliza->numero_poliza = $poliza['numero_poliza'];
@@ -85,8 +88,7 @@ class ReportesController extends JcrAPIController{
                                 $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
                                 $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
 
-                            }
-                            else{
+                            } else {
                                 $entityPoliza->poliza_id = $poliza['poliza_id'];
                                 $entityPoliza->numero_poliza = $poliza['numero_poliza'];
                                 $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
@@ -98,7 +100,7 @@ class ReportesController extends JcrAPIController{
                                 $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
                             }
 
-                            array_push($arrayResultFinal,$entityPoliza);
+                            array_push($arrayResultFinal, $entityPoliza);
                         }
 
 
@@ -106,25 +108,22 @@ class ReportesController extends JcrAPIController{
                         $response['JcrResponse']['totalPages'] = $maxPages;
                         $response['JcrResponse']['object'] = $arrayResultFinal;
                         $response = parent::setSuccessfulResponse($response);
-                    }
-                    else{
+                    } else {
                         $response['JcrResponse']['code'] = '1';
                         $response['JcrResponse']['message'] = 'Polizas no found';
                     }
 
 
-                }else{
+                } else {
                     $response = parent::setInvalidJsonMessage($response);
                 }
 
-            }
-            catch (\Exception $e){
+            } catch (\Exception $e) {
                 Log::info("Error Saving the User " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
-        }
-        else{
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
         Log::info("Responde Object: " . json_encode($response));
@@ -133,7 +132,8 @@ class ReportesController extends JcrAPIController{
     }
 
 
-    public function createReportRenovacion(){
+    public function createReportRenovacion()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -142,23 +142,23 @@ class ReportesController extends JcrAPIController{
         Log::info('Object received: ' . json_encode($jsonObject));
 
 
-        if(parent::validJcrJsonHeader($jsonObject)){
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            try{
+            try {
                 $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
                 $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
                 $aseguradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
 
 
-                if(isset($start_date) && isset($end_date)){
+                if (isset($start_date) && isset($end_date)) {
 
                     $polizaCtrl = new PolizaController();
                     $polizaTable = TableRegistry::get("Poliza");
                     $polizaRenovaciones = $polizaTable->newEntity();
 
-                    $result = $polizaCtrl->getListPolizaRenovaciones($start_date,$end_date,$aseguradora_id,true);
+                    $result = $polizaCtrl->getListPolizaRenovaciones($start_date, $end_date, $aseguradora_id, true);
 
-                    if(isset($result)){
+                    if (isset($result)) {
 
                         $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
 
@@ -167,28 +167,27 @@ class ReportesController extends JcrAPIController{
                         $polizaRenovaciones->polizas = $result;
 
 
-                        $url = $this->buildPDF(TEMPLATE_RENOVACIONES,$name_report, $polizaRenovaciones);
+                        $url = $this->buildPDF(TEMPLATE_RENOVACIONES, $name_report, $polizaRenovaciones);
 
                         $response['JcrResponse']['url_pdf'] = $url;
                         $response = parent::setSuccessfulResponse($response);
 
-                    }else{
+                    } else {
                         $response['JcrResponse']['code'] = '1';
                         $response['JcrResponse']['message'] = 'Polizas no found';
                     }
 
-                }else{
+                } else {
                     $response = parent::setInvalidJsonMessage($response);
                 }
 
-            }
-            catch (\Exception $e){
+            } catch (\Exception $e) {
                 Log::info("Error Saving the User " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
 
-        }else{
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
 
@@ -197,8 +196,8 @@ class ReportesController extends JcrAPIController{
     }
 
 
-
-    public function getInfoSiniestralidad(){
+    public function getInfoSiniestralidad()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -206,9 +205,9 @@ class ReportesController extends JcrAPIController{
         $jsonObject = parent::getJsonReceived();
         Log::info('Object received: ' . json_encode($jsonObject));
 
-        if(parent::validJcrJsonHeader($jsonObject)){
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            try{
+            try {
 
                 $page = $jsonObject['JcrParameters']['Reports']["page"];
                 $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
@@ -221,10 +220,10 @@ class ReportesController extends JcrAPIController{
                 $tipo_busqueda = !isset($jsonObject['JcrParameters']['Reports']['tipo_busqueda']) ? null : $jsonObject['JcrParameters']['Reports']['tipo_busqueda'];
 
 
-                if(isset($page)){
+                if (isset($page)) {
 
                     $siniestroCtrl = new SiniestroController();
-                    $siniestroFound = $siniestroCtrl->getSiniestralidadInfo($start_date,$end_date,$aseguaradora_id,$ci_or_placa,$ramo_id,false,$tipo_busqueda);
+                    $siniestroFound = $siniestroCtrl->getSiniestralidadInfo($start_date, $end_date, $aseguaradora_id, $ci_or_placa, $ramo_id, false, $tipo_busqueda);
 
                     Log::info($siniestroFound);
 
@@ -248,7 +247,7 @@ class ReportesController extends JcrAPIController{
                         $entityPoliza = null;
                         $arrayResultFinal = array();
 
-                        foreach($polizasFound as $poliza){
+                        foreach ($polizasFound as $poliza) {
 
                             $entityPoliza = $polizaTable->newEntity();
                             $entityPoliza->poliza_id = $poliza['poliza']['poliza_id'];
@@ -263,39 +262,35 @@ class ReportesController extends JcrAPIController{
                             $entityPoliza->monto_siniestro = $poliza['monto_siniestro'];
                             $entityPoliza->tipo_siniestro = $poliza['tipo_siniestro_id'];
 
-                            if($poliza['tipo_siniestro_id'] == SINIESTRO_VEHICULO){
+                            if ($poliza['tipo_siniestro_id'] == SINIESTRO_VEHICULO) {
                                 $entityPoliza->vehiculo = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza']['poliza_id']);
                             }
 
                             $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['poliza']['aseguradora_id']);
-                            $entityPoliza->calculo = $siniestroCtrl->calculoSiniestro($poliza['monto_siniestro'],$poliza['poliza']['prima_total']);
+                            $entityPoliza->calculo = $siniestroCtrl->calculoSiniestro($poliza['monto_siniestro'], $poliza['poliza']['prima_total']);
 
-                            array_push($arrayResultFinal,$entityPoliza);
+                            array_push($arrayResultFinal, $entityPoliza);
                         }
 
                         $response['JcrResponse']['totalRecords'] = $count;
                         $response['JcrResponse']['totalPages'] = $maxPages;
                         $response['JcrResponse']['object'] = $arrayResultFinal;
                         $response = parent::setSuccessfulResponse($response);
-                    }
-                    else {
+                    } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
                         $response['JcrResponse']['message'] = 'No Users found';
                     }
 
-                }
-                else{
+                } else {
                     $response = parent::setInvalidJsonMessage($response);
                 }
 
-            }
-            catch (\Exception $e){
+            } catch (\Exception $e) {
                 Log::info("Error Saving the User " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
-        }
-        else{
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
 
@@ -304,7 +299,8 @@ class ReportesController extends JcrAPIController{
     }
 
 
-    public function createReportSiniestralidad(){
+    public function createReportSiniestralidad()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -313,9 +309,9 @@ class ReportesController extends JcrAPIController{
         Log::info('Object received: ' . json_encode($jsonObject));
 
 
-        if(parent::validJcrJsonHeader($jsonObject)){
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            try{
+            try {
 
                 $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
                 $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
@@ -324,11 +320,11 @@ class ReportesController extends JcrAPIController{
                 $ramo_id = !isset($jsonObject['JcrParameters']['Reports']['ramo_id']) ? null : $jsonObject['JcrParameters']['Reports']['ramo_id'];
                 $tipo_busqueda = !isset($jsonObject['JcrParameters']['Reports']['tipo_busqueda']) ? null : $jsonObject['JcrParameters']['Reports']['tipo_busqueda'];
 
-                if(isset($start_date) && isset($end_date)){
+                if (isset($start_date) && isset($end_date)) {
                     $siniestroCtrl = new SiniestroController();
-                    $listSiniestro = $siniestroCtrl->getSiniestralidadInfo($start_date,$end_date,$aseguaradora_id,$ci_or_placa,$ramo_id,true,$tipo_busqueda);
+                    $listSiniestro = $siniestroCtrl->getSiniestralidadInfo($start_date, $end_date, $aseguaradora_id, $ci_or_placa, $ramo_id, true, $tipo_busqueda);
 
-                    if(isset($listSiniestro)){
+                    if (isset($listSiniestro)) {
 
                         $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
 
@@ -339,29 +335,28 @@ class ReportesController extends JcrAPIController{
                         $siniestralidad->end_date = $end_date;
                         $siniestralidad->lista_siniestralidad = $listSiniestro;
 
-                        $url = $this->buildPDF(TEMPLATE_SINIESTRALIDAD,$name_report, $siniestralidad);
+                        $url = $this->buildPDF(TEMPLATE_SINIESTRALIDAD, $name_report, $siniestralidad);
 
                         $response['JcrResponse']['url_pdf'] = $url;
                         $response = parent::setSuccessfulResponse($response);
 
-                    }else{
+                    } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
                         $response['JcrResponse']['message'] = 'No Users found';
                     }
 
 
-                }
-                else{
+                } else {
                     $response = parent::setInvalidJsonMessage($response);
                 }
 
-            }catch (\Exception $e){
+            } catch (\Exception $e) {
                 Log::info("Error Saving the User " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
 
-        }else{
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
 
@@ -370,123 +365,8 @@ class ReportesController extends JcrAPIController{
     }
 
 
-
-
-    public function getSumasAsegurasInfo(){
-
-        Log::info("Obtener informacion siniestralidad");
-        parent::setResultAsAJson();
-        $response = parent::getDefaultJcrMessage();
-        $jsonObject = parent::getJsonReceived();
-        Log::info('Object received: ' . json_encode($jsonObject));
-
-
-        if(parent::validJcrJsonHeader($jsonObject)){
-
-                try{
-
-                    $page = $jsonObject['JcrParameters']['Reports']["page"];
-                    $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
-
-                    $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
-                    $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
-                    $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
-                    $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
-
-
-                    if(isset($montoSa)){
-
-                        $polizaTable = TableRegistry::get("Poliza");
-                        $polizaCtrl = new PolizaController();
-                        $vehiculoCtrl = new VehiculoController();
-                        $clientCtrl = new ClientController();
-                        $siniestroCtrl = new SiniestroController();
-
-                        $polizaFound = $polizaCtrl->getAumentoSA($start_date,$end_date,$montoSa,$aseguaradora_id,false);
-
-                        Log::info($polizaFound);
-
-                        $count = $polizaFound->count();
-                        $this->paginate = array('limit' => $limit, 'page' => $page);
-                        $polizaFound = $this->paginate($polizaFound);
-
-
-                        if($polizaFound->count()>0){
-
-                            $maxPages = floor((($count - 1) / $limit) + 1);
-
-                            $polizaFound = $polizaFound->toArray();
-
-                            $arrayResultFinal = array();
-
-                            //tratar el arreglo de polizas
-                            foreach($polizaFound as $poliza){
-
-                                $entityPoliza = $polizaTable->newEntity();
-
-                                if($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA){
-
-                                    $entityPoliza->poliza_id = $poliza['poliza_id'];
-                                    $entityPoliza->numero_poliza = $poliza['numero_poliza'];
-                                    $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                                    $entityPoliza->agente = $poliza['agente'];
-                                    $entityPoliza->prima_total = $poliza['prima_total'];
-                                    $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
-                                    $entityPoliza->fecha_emision = $poliza['fecha_emision'];
-                                    $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
-                                    $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
-                                    $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                                    $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
-
-                                }
-                                else{
-                                    $entityPoliza->poliza_id = $poliza['poliza_id'];
-                                    $entityPoliza->numero_poliza = $poliza['numero_poliza'];
-                                    $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
-                                    $entityPoliza->agente = $poliza['agente'];
-                                    $entityPoliza->prima_total = $poliza['prima_total'];
-                                    $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
-                                    $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
-                                    $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
-                                    $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
-                                }
-
-                                array_push($arrayResultFinal,$entityPoliza);
-                            }
-
-                            $response['JcrResponse']['totalRecords'] = $count;
-                            $response['JcrResponse']['totalPages'] = $maxPages;
-                            $response['JcrResponse']['object'] = $arrayResultFinal;
-                            $response = parent::setSuccessfulResponse($response);
-
-                        }
-                        else{
-                            $response['JcrResponse']['code'] = '1';
-                            $response['JcrResponse']['message'] = 'Polizas no found';
-                        }
-
-                    }
-                    else{
-                        $response = parent::setInvalidJsonMessage($response);
-                    }
-                }
-                catch (\Exception $e){
-                    Log::info("Error Saving the User " . $e->getMessage());
-                    $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                    $response['JcrResponse']['message'] = $e->getMessage();
-                }
-
-            }
-            else{
-                $response = parent::setInvalidJsonMessage($response);
-            }
-
-        Log::info("Responde Object: " . json_encode($response));
-        $this->response->body(json_encode($response));
-    }
-
-
-    public function createReportSA(){
+    public function getSumasAsegurasInfo()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -495,78 +375,10 @@ class ReportesController extends JcrAPIController{
         Log::info('Object received: ' . json_encode($jsonObject));
 
 
-        if(parent::validJcrJsonHeader($jsonObject)){
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            try{
+            try {
 
-                $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
-                $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
-                $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
-                $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
-
-
-                if(isset($montoSa)){
-
-                    $polizaCtrl = new PolizaController();
-                    $result = $polizaCtrl->getAumentoSA($start_date,$end_date,$montoSa,$aseguaradora_id,true);
-
-                    Log::info(json_encode($result));
-
-                    if(isset($result)){
-
-                        $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
-
-                        $polizaTable = TableRegistry::get("Poliza");
-                        $polizaSA = $polizaTable->newEntity();
-
-                        $polizaSA->start_date = $start_date;
-                        $polizaSA->end_date = $end_date;
-                        $polizaSA->monto_filtro = $montoSa;
-                        $polizaSA->polizas = $result;
-
-                        $url = $this->buildPDF(TEMPLATE_SA,$name_report, $polizaSA);
-
-                        $response['JcrResponse']['url_pdf'] = $url;
-                        $response = parent::setSuccessfulResponse($response);
-
-                    }else{
-                        $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
-                    }
-
-
-                }else{
-                    $response = parent::setInvalidJsonMessage($response);
-                }
-
-            }
-            catch (\Exception $e){
-                Log::info("Error Saving the User " . $e->getMessage());
-                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                $response['JcrResponse']['message'] = $e->getMessage();
-            }
-
-
-        }else{
-            $response = parent::setInvalidJsonMessage($response);
-        }
-
-        Log::info("Responde Objects: " . json_encode($response));
-        $this->response->body(json_encode($response));
-    }
-
-
-    public function getInfoVentasCruzadas(){
-
-        Log::info("Obtener informacion siniestralidad");
-        parent::setResultAsAJson();
-        $response = parent::getDefaultJcrMessage();
-        $jsonObject = parent::getJsonReceived();
-        Log::info('Object received: ' . json_encode($jsonObject));
-
-        if(parent::validJcrJsonHeader($jsonObject)){
-
-            try{
                 $page = $jsonObject['JcrParameters']['Reports']["page"];
                 $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
 
@@ -576,8 +388,7 @@ class ReportesController extends JcrAPIController{
                 $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
 
 
-                if(isset($start_date) && isset($end_date)){
-
+                if (isset($montoSa)) {
 
                     $polizaTable = TableRegistry::get("Poliza");
                     $polizaCtrl = new PolizaController();
@@ -585,28 +396,29 @@ class ReportesController extends JcrAPIController{
                     $clientCtrl = new ClientController();
                     $siniestroCtrl = new SiniestroController();
 
-                    $polizaFound = $polizaCtrl->getListVentasCruzadas($start_date,$end_date,$montoSa,$aseguaradora_id,false);
+                    $polizaFound = $polizaCtrl->getAumentoSA($start_date, $end_date, $montoSa, $aseguaradora_id, false);
+
+                    Log::info($polizaFound);
 
                     $count = $polizaFound->count();
                     $this->paginate = array('limit' => $limit, 'page' => $page);
                     $polizaFound = $this->paginate($polizaFound);
 
 
-                    if($polizaFound->count() > 0){
+                    if ($polizaFound->count() > 0) {
 
                         $maxPages = floor((($count - 1) / $limit) + 1);
 
                         $polizaFound = $polizaFound->toArray();
 
-                        Log::info("Arreglo final:" +json_encode($polizaFound));
                         $arrayResultFinal = array();
 
                         //tratar el arreglo de polizas
-                        foreach($polizaFound as $poliza){
+                        foreach ($polizaFound as $poliza) {
 
                             $entityPoliza = $polizaTable->newEntity();
 
-                            if($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA){
+                            if ($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA) {
 
                                 $entityPoliza->poliza_id = $poliza['poliza_id'];
                                 $entityPoliza->numero_poliza = $poliza['numero_poliza'];
@@ -620,8 +432,7 @@ class ReportesController extends JcrAPIController{
                                 $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
                                 $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
 
-                            }
-                            else{
+                            } else {
                                 $entityPoliza->poliza_id = $poliza['poliza_id'];
                                 $entityPoliza->numero_poliza = $poliza['numero_poliza'];
                                 $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
@@ -633,7 +444,7 @@ class ReportesController extends JcrAPIController{
                                 $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
                             }
 
-                            array_push($arrayResultFinal,$entityPoliza);
+                            array_push($arrayResultFinal, $entityPoliza);
                         }
 
                         $response['JcrResponse']['totalRecords'] = $count;
@@ -641,30 +452,31 @@ class ReportesController extends JcrAPIController{
                         $response['JcrResponse']['object'] = $arrayResultFinal;
                         $response = parent::setSuccessfulResponse($response);
 
-                    }
-                    else{
+                    } else {
                         $response['JcrResponse']['code'] = '1';
                         $response['JcrResponse']['message'] = 'Polizas no found';
                     }
-                }
 
-            }catch (\Exception $e){
-                Log::info("Error Saving the User " . $e);
+                } else {
+                    $response = parent::setInvalidJsonMessage($response);
+                }
+            } catch (\Exception $e) {
+                Log::info("Error Saving the User " . $e->getMessage());
                 $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
                 $response['JcrResponse']['message'] = $e->getMessage();
             }
-        }
-        else{
+
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
 
-        Log::info("Responde Objects: " . json_encode($response));
+        Log::info("Responde Object: " . json_encode($response));
         $this->response->body(json_encode($response));
     }
 
 
-
-    public function createReportVentasCruzadas(){
+    public function createReportSA()
+    {
 
         Log::info("Obtener informacion siniestralidad");
         parent::setResultAsAJson();
@@ -672,58 +484,59 @@ class ReportesController extends JcrAPIController{
         $jsonObject = parent::getJsonReceived();
         Log::info('Object received: ' . json_encode($jsonObject));
 
-        if(parent::validJcrJsonHeader($jsonObject)){
 
-            $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
-            $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
-            $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
-            $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
+        if (parent::validJcrJsonHeader($jsonObject)) {
 
-            if(isset($start_date) && isset($end_date)){
+            try {
 
-                try{
-
-                        $polizaCtrl = new PolizaController();
-                        $polizaFound = $polizaCtrl->getListVentasCruzadas($start_date,$end_date,$montoSa,$aseguaradora_id,true);
-
-                        Log::info(json_encode($polizaFound));
-
-                        if(isset($polizaFound)){
-
-                            $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
-
-                            $polizaTable = TableRegistry::get("Poliza");
-                            $polizaVC = $polizaTable->newEntity();
-
-                            $polizaVC->start_date = $start_date;
-                            $polizaVC->end_date = $end_date;
-                            $polizaVC->monto_filtro = $montoSa;
-                            $polizaVC->polizas = $polizaFound;
-
-                            $url = $this->buildPDF(TEMPLATE_VENTAS_CRUZADAS,$name_report, $polizaVC);
-
-                            $response['JcrResponse']['url_pdf'] = $url;
-                            $response = parent::setSuccessfulResponse($response);
-
-                        }
-                        else{
-                            $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                            $response['JcrResponse']['message'] = 'No Poliza found';
-                        }
+                $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+                $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+                $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
+                $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
 
 
-                }catch (\Exception $e){
-                    Log::info("Error Saving the User " . $e);
-                    $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
-                    $response['JcrResponse']['message'] = $e->getMessage();
+                if (isset($montoSa)) {
+
+                    $polizaCtrl = new PolizaController();
+                    $result = $polizaCtrl->getAumentoSA($start_date, $end_date, $montoSa, $aseguaradora_id, true);
+
+                    Log::info(json_encode($result));
+
+                    if (isset($result)) {
+
+                        $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
+
+                        $polizaTable = TableRegistry::get("Poliza");
+                        $polizaSA = $polizaTable->newEntity();
+
+                        $polizaSA->start_date = $start_date;
+                        $polizaSA->end_date = $end_date;
+                        $polizaSA->monto_filtro = $montoSa;
+                        $polizaSA->polizas = $result;
+
+                        $url = $this->buildPDF(TEMPLATE_SA, $name_report, $polizaSA);
+
+                        $response['JcrResponse']['url_pdf'] = $url;
+                        $response = parent::setSuccessfulResponse($response);
+
+                    } else {
+                        $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
+                        $response['JcrResponse']['message'] = 'No Poliza found';
+                    }
+
+
+                } else {
+                    $response = parent::setInvalidJsonMessage($response);
                 }
 
-            }else{
-                $response = parent::setInvalidJsonMessage($response);
+            } catch (\Exception $e) {
+                Log::info("Error Saving the User " . $e->getMessage());
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = $e->getMessage();
             }
 
-        }
-        else{
+
+        } else {
             $response = parent::setInvalidJsonMessage($response);
         }
 
@@ -732,15 +545,187 @@ class ReportesController extends JcrAPIController{
     }
 
 
-    public function getRamoSystem($ramo_id){
+    public function getInfoVentasCruzadas()
+    {
+
+        Log::info("Obtener informacion siniestralidad");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+
+            try {
+                $page = $jsonObject['JcrParameters']['Reports']["page"];
+                $limit = !isset($jsonObject['JcrParameters']['Reports']["limit"]) ? 10 : $jsonObject['JcrParameters']['Reports']["limit"];
+
+                $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+                $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+                $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
+                $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
+
+
+                if (isset($start_date) && isset($end_date)) {
+
+
+                    $polizaTable = TableRegistry::get("Poliza");
+                    $polizaCtrl = new PolizaController();
+                    $vehiculoCtrl = new VehiculoController();
+                    $clientCtrl = new ClientController();
+                    $siniestroCtrl = new SiniestroController();
+
+                    $polizaFound = $polizaCtrl->getListVentasCruzadas($start_date, $end_date, $montoSa, $aseguaradora_id, false);
+
+                    $count = $polizaFound->count();
+                    $this->paginate = array('limit' => $limit, 'page' => $page);
+                    $polizaFound = $this->paginate($polizaFound);
+
+
+                    if ($polizaFound->count() > 0) {
+
+                        $maxPages = floor((($count - 1) / $limit) + 1);
+
+                        $polizaFound = $polizaFound->toArray();
+
+                        Log::info("Arreglo final:" + json_encode($polizaFound));
+                        $arrayResultFinal = array();
+
+                        //tratar el arreglo de polizas
+                        foreach ($polizaFound as $poliza) {
+
+                            $entityPoliza = $polizaTable->newEntity();
+
+                            if ($poliza['ramo_id'] == RAMO_AUTO_INDIVIDUAL || $poliza['ramo_id'] == RAMO_AUTO_FLOTA) {
+
+                                $entityPoliza->poliza_id = $poliza['poliza_id'];
+                                $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                                $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                                $entityPoliza->agente = $poliza['agente'];
+                                $entityPoliza->prima_total = $poliza['prima_total'];
+                                $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                                $entityPoliza->fecha_emision = $poliza['fecha_emision'];
+                                $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                                $entityPoliza->vehiculos = $vehiculoCtrl->getVehiculoRelationPoliza($poliza['poliza_id']);
+                                $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                                $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+
+                            } else {
+                                $entityPoliza->poliza_id = $poliza['poliza_id'];
+                                $entityPoliza->numero_poliza = $poliza['numero_poliza'];
+                                $entityPoliza->asegurado = $clientCtrl->getClientById($poliza['cliente_id_titular']);
+                                $entityPoliza->agente = $poliza['agente'];
+                                $entityPoliza->prima_total = $poliza['prima_total'];
+                                $entityPoliza->fecha_vencimiento = $poliza['fecha_vencimiento'];
+                                $entityPoliza->ramo = $siniestroCtrl->getRamoSystem($poliza['ramo_id'])[0];
+                                $entityPoliza->suma_asegurada = $polizaCtrl->getCoberturasDeLaPoliza($poliza['poliza_id']);
+                                $entityPoliza->aseguradora = $polizaCtrl->getAseguradoraByID($poliza['aseguradora_id'])[0]['aseguradora_nombre'];
+                            }
+
+                            array_push($arrayResultFinal, $entityPoliza);
+                        }
+
+                        $response['JcrResponse']['totalRecords'] = $count;
+                        $response['JcrResponse']['totalPages'] = $maxPages;
+                        $response['JcrResponse']['object'] = $arrayResultFinal;
+                        $response = parent::setSuccessfulResponse($response);
+
+                    } else {
+                        $response['JcrResponse']['code'] = '1';
+                        $response['JcrResponse']['message'] = 'Polizas no found';
+                    }
+                }
+
+            } catch (\Exception $e) {
+                Log::info("Error Saving the User " . $e);
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = $e->getMessage();
+            }
+        } else {
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Objects: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
+
+
+    public function createReportVentasCruzadas()
+    {
+
+        Log::info("Obtener informacion siniestralidad");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+        Log::info('Object received: ' . json_encode($jsonObject));
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+
+            $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+            $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+            $aseguaradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
+            $montoSa = !isset($jsonObject['JcrParameters']['Reports']['monto']) ? null : $jsonObject['JcrParameters']['Reports']['monto'];
+
+            if (isset($start_date) && isset($end_date)) {
+
+                try {
+
+                    $polizaCtrl = new PolizaController();
+                    $polizaFound = $polizaCtrl->getListVentasCruzadas($start_date, $end_date, $montoSa, $aseguaradora_id, true);
+
+                    Log::info(json_encode($polizaFound));
+
+                    if (isset($polizaFound)) {
+
+                        $name_report = NAME_FILE . rand(10000, 99999) . '.pdf';
+
+                        $polizaTable = TableRegistry::get("Poliza");
+                        $polizaVC = $polizaTable->newEntity();
+
+                        $polizaVC->start_date = $start_date;
+                        $polizaVC->end_date = $end_date;
+                        $polizaVC->monto_filtro = $montoSa;
+                        $polizaVC->polizas = $polizaFound;
+
+                        $url = $this->buildPDF(TEMPLATE_VENTAS_CRUZADAS, $name_report, $polizaVC);
+
+                        $response['JcrResponse']['url_pdf'] = $url;
+                        $response = parent::setSuccessfulResponse($response);
+
+                    } else {
+                        $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
+                        $response['JcrResponse']['message'] = 'No Poliza found';
+                    }
+
+
+                } catch (\Exception $e) {
+                    Log::info("Error Saving the User " . $e);
+                    $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                    $response['JcrResponse']['message'] = $e->getMessage();
+                }
+
+            } else {
+                $response = parent::setInvalidJsonMessage($response);
+            }
+
+        } else {
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Objects: " . json_encode($response));
+        $this->response->body(json_encode($response));
+    }
+
+
+    public function getRamoSystem($ramo_id)
+    {
 
         $ramoTable = TableRegistry::get("Ramo");
         $ramoFound = $ramoTable->findByRamoId($ramo_id);
 
-        if($ramoFound->count() > 0){
+        if ($ramoFound->count() > 0) {
             $ramoFound = $ramoFound->toArray();
-        }
-        else{
+        } else {
             $ramoFound = null;
         }
 
@@ -779,6 +764,81 @@ class ReportesController extends JcrAPIController{
         }
 
         return $url_pdf;
+    }
+
+    public function enviarReportesRenovacion()
+    {
+
+        Log::info("Obtener informacion email renovacion");
+        parent::setResultAsAJson();
+        $response = parent::getDefaultJcrMessage();
+        $jsonObject = parent::getJsonReceived();
+
+
+        if (parent::validJcrJsonHeader($jsonObject)) {
+
+            try {
+                $start_date = !isset($jsonObject['JcrParameters']['Reports']['start_date']) ? null : $jsonObject['JcrParameters']['Reports']['start_date'];
+                $end_date = !isset($jsonObject['JcrParameters']['Reports']['end_date']) ? null : $jsonObject['JcrParameters']['Reports']['end_date'];
+                $aseguradora_id = !isset($jsonObject['JcrParameters']['Reports']['aseguradora_id']) ? null : $jsonObject['JcrParameters']['Reports']['aseguradora_id'];
+
+
+                if (isset($start_date) && isset($end_date)) {
+
+                    $polizaCtrl = new PolizaController();
+                    $polizaTable = TableRegistry::get("Poliza");
+                    $polizaRenovaciones = $polizaTable->newEntity();
+
+                    $result = $polizaCtrl->getListPolizaRenovaciones($start_date, $end_date, $aseguradora_id, true);
+
+                    if (isset($result)) {
+
+                        foreach ($result as $objetos) {
+
+                            Log::info("Numero de poliza: " . $objetos['numero_poliza']);
+                            Log::info("Nombre  de Cliente: " . $objetos['asegurado']['nombre_cliente']);
+                            Log::info("Apellido  de Cliente: " . $objetos['asegurado']['apellido_cliente']);
+                            Log::info("Correo  del Cliente: " . $objetos['asegurado']['correo_cliente']);
+                            Log::info("Ramo  del Cliente: " . $objetos['ramo']['ramo_nombre']);
+
+                            $nombre_cliente = $objetos['asegurado']['nombre_cliente'] . ' ' . $objetos['asegurado']['apellido_cliente'];
+
+
+                            $to = $objetos['asegurado']['correo_cliente'];
+                            $subject = 'Póliza en proceso de renovación';
+                            $template = 'email_renovacion';
+                            $params = array(
+                                'nombre_cliente' => $nombre_cliente,
+                                'ramo_nombre' => $objetos['ramo']['ramo_nombre'],
+                                'numero_poliza' => $objetos['numero_poliza']);
+
+
+
+                            ReaxiumUtil::sendMail($to, $subject, $template, $params);
+                            Log::info("mensaje enviado");
+                        }
+
+
+                    } else {
+                        $response['JcrResponse']['code'] = '1';
+                        $response['JcrResponse']['message'] = 'Póliza no encontrada ';
+                    }
+
+                } else {
+                    $response = parent::setInvalidJsonMessage($response);
+                }
+
+            } catch (\Exception $e) {
+                $response['JcrResponse']['code'] = ReaxiumApiMessages::$CANNOT_SAVE;
+                $response['JcrResponse']['message'] = $e->getMessage();
+            }
+
+        } else {
+            $response = parent::setInvalidJsonMessage($response);
+        }
+
+        Log::info("Responde Object: " . json_encode($response));
+        $this->response->body(json_encode($response));
     }
 
 
