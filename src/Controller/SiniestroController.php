@@ -90,11 +90,14 @@ class SiniestroController extends JcrAPIController{
                     $siniestroEntity->siniestro_id = $siniestroJSON['siniestro']['siniestro_id'];
                 }
 
+                if(isset($siniestroJSON['siniestro']['observaciones_ordenes'])){
+                    $siniestroEntity->observaciones_ordenes = $siniestroJSON['siniestro']['observaciones_ordenes'];
+                }
+
                 $siniestroEntity->poliza_id = $siniestroJSON['siniestro']['poliza_id'];
                 $siniestroEntity->numero_siniestro = $siniestroJSON['siniestro']['numero_siniestro'];
                 $siniestroEntity->monto_siniestro = $siniestroJSON['siniestro']['monto_siniestro'];
                 $siniestroEntity->tipo_siniestro_id = $siniestroJSON['siniestro']['tipo_siniestro_id'];
-                $siniestroEntity->observaciones_ordenes = $siniestroJSON['siniestro']['observaciones_ordenes'];
                 $siniestroEntity->fecha_ocurrencia = ReaxiumUtil::getDate($siniestroJSON['siniestro']['fecha_ocurrencia']);
 
 
