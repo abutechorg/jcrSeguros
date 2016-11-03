@@ -34,11 +34,7 @@
             Si desea mayor información, contáctenos a través del 0212-761- 9707.
         </td>
     </tr>
-    <tr>
-        <td style="padding-left: 10%; color:#062744; font-size:14px; font-family: Helvetica, Arial, sans-serif; padding-top: 50px;"><strong>
-            Correo para la gerencia: Dirigirlo a Jcrseguros@gmail.com</strong>
-        </td>
-    </tr>
+
     </tbody>
 </table>
 </div>

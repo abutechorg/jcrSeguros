@@ -110,7 +110,7 @@ class ReportesController extends JcrAPIController
                         $response = parent::setSuccessfulResponse($response);
                     } else {
                         $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'Polizas no found';
+                        $response['JcrResponse']['message'] = 'Polizas no encontradas';
                     }
 
 
@@ -174,7 +174,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'Polizas no found';
+                        $response['JcrResponse']['message'] = 'Polizas no encontradas';
                     }
 
                 } else {
@@ -278,7 +278,7 @@ class ReportesController extends JcrAPIController
                         $response = parent::setSuccessfulResponse($response);
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Users found';
+                        $response['JcrResponse']['message'] = 'Usuarios no encontrados.';
                     }
 
                 } else {
@@ -342,7 +342,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Users found';
+                        $response['JcrResponse']['message'] = 'Usuarios no encontrados.';
                     }
 
 
@@ -454,7 +454,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'Polizas no found';
+                        $response['JcrResponse']['message'] = 'Polizas no encontradas.';
                     }
 
                 } else {
@@ -521,7 +521,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
+                        $response['JcrResponse']['message'] = 'Poliza no encontradas.';
                     }
 
 
@@ -632,7 +632,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'Polizas no found';
+                        $response['JcrResponse']['message'] = 'Polizas no encontradas';
                     }
                 }
 
@@ -694,7 +694,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
+                        $response['JcrResponse']['message'] = 'Polizas no encontradas';
                     }
 
 
@@ -823,7 +823,7 @@ class ReportesController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = '1';
-                        $response['JcrResponse']['message'] = 'Póliza no encontrada ';
+                        $response['JcrResponse']['message'] = 'Póliza no encontradas';
                     }
 
                 } else {

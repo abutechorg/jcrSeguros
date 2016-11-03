@@ -216,6 +216,10 @@ class PolizaController extends JcrAPIController
         $polizaEntity->observacion = $polizaJson['observacion'];
         $polizaResult = $polizaTable->save($polizaEntity);
         return $polizaResult;
+
+
+
+
     }
 
 
@@ -301,7 +305,7 @@ class PolizaController extends JcrAPIController
                         $response = parent::setSuccessfulResponse($response);
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
+                        $response['JcrResponse']['message'] = 'Poliza no encontrada';
                     }
                 } else {
                     $response = parent::setInvalidJsonMessage($response);
@@ -380,7 +384,7 @@ class PolizaController extends JcrAPIController
 
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
+                        $response['JcrResponse']['message'] = 'Poliza no encontrada';
                     }
                 } else {
                     $response = parent::setInvalidJsonMessage($response);
@@ -795,7 +799,7 @@ class PolizaController extends JcrAPIController
                         $response = parent::setSuccessfulResponse($response);
                     } else {
                         $response['JcrResponse']['code'] = ReaxiumApiMessages::$NOT_FOUND_CODE;
-                        $response['JcrResponse']['message'] = 'No Poliza found';
+                        $response['JcrResponse']['message'] = 'Poliza no encontrada';
                     }
                 } else {
                     $response = parent::setInvalidJsonMessage($response);
