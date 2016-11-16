@@ -142,7 +142,7 @@ class FormatoController extends JcrAPIController{
 
                         break;
                     case 3:
-                        //Formato cambio de placa
+                        //Formato cambio de placas
                         break;
                     case 4:
                         //Formato Anulación
