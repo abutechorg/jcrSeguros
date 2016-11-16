@@ -86,7 +86,7 @@ class FormatoController extends JcrAPIController{
 
                         break;
                     case 2:
-                        //Formato cesión de derechos póliza vehículos
+                        //Formato cesión de derechos póliza vehículoss
 
                         //Formato Cambio Intermediario
                         $fecha_formato = !isset($jsonObject['JcrParameters']['Formats']['date_format']) ? null :$jsonObject['JcrParameters']['Formats']['date_format'];
