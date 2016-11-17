@@ -119,9 +119,19 @@ class SiniestroController extends JcrAPIController{
                         $siniestroAutoEntity->siniestro_id = $siniestro['siniestro_id'];
                         $siniestroAutoEntity->fecha_declaracion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_declaracion']);
                         $siniestroAutoEntity->fecha_inspeccion = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_inspeccion']);
-                        $siniestroAutoEntity->taller_propuesto = $siniestroJSON['auto']['taller_propuesto'];
-                        $siniestroAutoEntity->fecha_entrada_taller = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_entrada_taller']);
-                        $siniestroAutoEntity->fecha_cierre = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_cierre']);
+
+                        if(isset($siniestroJSON['auto']['taller_propuesto'])){
+                            $siniestroAutoEntity->taller_propuesto = $siniestroJSON['auto']['taller_propuesto'];
+                        }
+
+                        if(isset($siniestroJSON['auto']['fecha_entrada_taller']) && $siniestroJSON['auto']['fecha_entrada_taller'] != "Invalid date"){
+                            $siniestroAutoEntity->fecha_entrada_taller = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_entrada_taller']);
+                        }
+
+                        if(isset($siniestroJSON['auto']['fecha_cierre']) && $siniestroJSON['auto']['fecha_cierre'] != "Invalid date"){
+                            $siniestroAutoEntity->fecha_cierre = ReaxiumUtil::getDate($siniestroJSON['auto']['fecha_cierre']);
+                        }
+
 
                         $result = $siniestroAutomovilTable->save($siniestroAutoEntity);
 
